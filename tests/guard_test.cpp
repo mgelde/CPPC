@@ -4,42 +4,76 @@
 
 #include "cwrap.h"
 
-struct SomeClass {
-    int x = 17;
-    int *blarg;
-};
+#include "test_api.h"
 
 using namespace cwrap::guard;
-
-static int staticData = 1773;
 
 class GuardTest : public testing::Test {
     public:
         void SetUp() override;
         void TearDown() override;
+
+
+        static bool _called;
     protected:
-        std::unique_ptr<SomeClass> _ptr;
+        std::function<void(some_type_t&)> _freeFunc;
 };
 
+bool GuardTest::_called { false };
+
 void GuardTest::SetUp() {
-    _ptr = std::make_unique<SomeClass>();
-    _ptr->blarg = &staticData;
+    _called = false;
+    _freeFunc = [this](some_type_t &ptr) {
+        ptr.x = 2222;
+        ptr.data = nullptr;
+        some_free_func(&ptr);
+        _called = true;
+    };
+
 }
+
+template <class T>
+struct CustomDeleter {
+    void operator() (T &t) const {
+        GuardTest::_called = true;
+        (void) t;
+    }
+};
 
 void GuardTest::TearDown() {
-    _ptr.reset();
 }
 
-TEST_F(GuardTest, testFreeFunction) {
-     {
-         Guard<SomeClass*> guard (_ptr.get(), [](SomeClass *p) {
-            if (nullptr != p && nullptr != p->blarg) {
-                p->blarg = &p->x;
-            }
-        });
-        ASSERT_EQ(guard.get(), _ptr.get());
-        ASSERT_NE(nullptr, guard.get()->blarg);
-        ASSERT_NE(guard.get()->blarg, &guard.get()->x);
-     }
-     ASSERT_EQ(_ptr->blarg, &_ptr->x);
+TEST_F(GuardTest, testPassingPointerToAllocatedMemory) {
+    {
+        ASSERT_FALSE(_called);
+        Guard<some_type_t, decltype(_freeFunc)> guard {_freeFunc};
+        ASSERT_FALSE(_called);
+        do_init_work(&guard.get());
+        ASSERT_FALSE(_called);
+    }
+    ASSERT_TRUE(_called);
 }
+
+TEST_F(GuardTest, testInitFunctionReturningPointer) {
+    {
+        auto freeFunc = [this](some_type_t *&ptr) {
+            _called = true;
+            some_free_func(ptr);
+        };
+        auto guard = make_guarded<some_type_t*, decltype(freeFunc)>(freeFunc, do_init_work_return());
+        ASSERT_FALSE(_called);
+    }
+    ASSERT_TRUE(_called);
+}
+
+
+TEST_F(GuardTest, testWithCustomDeleter) {
+    {
+        ASSERT_FALSE(_called);
+        Guard<some_type_t, CustomDeleter<some_type_t>> guard {};
+        do_init_work(&guard.get());
+        ASSERT_FALSE(_called);
+    }
+    ASSERT_TRUE(_called);
+}
+
