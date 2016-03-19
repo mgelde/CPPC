@@ -30,7 +30,21 @@ struct DefaultFreePolicy {
 
 template <class T>
 struct DefaultMemoryPolicy {
-    using StorageType = std::remove_reference_t<T>;
+    using RawType = std::remove_reference_t<T>;
+    using StorageType = RawType;
+
+    inline static const RawType& getFrom(const StorageType &t) {
+        return t;
+    }
+
+    inline static RawType& getFrom(StorageType &t) {
+        return t;
+    }
+
+    template <class ...Args>
+    inline static StorageType createFrom(Args &&...args) {
+        return RawType(std::forward<Args>(args)...);
+    }
 };
 
 template <class Type,
@@ -41,23 +55,23 @@ class Guard {
 public:
 
     Guard()
-        : _guarded {}
+        : _guarded { MemoryPolicy::createFrom() }
         , _freeFunc {} {}
 
     Guard(FreePolicy func)
-        : _guarded {}
+        : _guarded { MemoryPolicy::createFrom() }
         , _freeFunc { func } {}
 
     ~Guard() {
-        _freeFunc(_guarded);
+        _freeFunc(MemoryPolicy::getFrom(_guarded));
     }
 
     const Type &get() const {
-        return _guarded;
+        return MemoryPolicy::getFrom(_guarded);
     }
 
     Type &get() {
-        return _guarded;
+        return MemoryPolicy::getFrom(_guarded);
     }
 
     template <class T, class F, class M>
@@ -68,11 +82,11 @@ private:
     FreePolicy _freeFunc;
 
     Guard(FreePolicy func, Type t)
-        : _guarded { t }
+        : _guarded { MemoryPolicy::createFrom(t) }
         , _freeFunc { func } {}
 
     Guard(Type t)
-        : _guarded { t }
+        : _guarded { MemoryPolicy::createFrom(t) }
         , _freeFunc {} {}
 };
 
@@ -89,6 +103,6 @@ template <class T,
 Guard<T, FreePolicy, MemoryPolicy> make_guarded(T t) {
     return Guard<std::remove_reference_t<T>, FreePolicy, MemoryPolicy> { t };
 }
-}
 
+}
 }

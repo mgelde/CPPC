@@ -1,6 +1,5 @@
 #pragma once
 
-
 struct some_type_t {
     int x;
     int *data;

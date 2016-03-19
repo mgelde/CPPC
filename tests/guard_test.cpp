@@ -13,23 +13,13 @@ class GuardTest : public testing::Test {
         void SetUp() override;
         void TearDown() override;
 
-
         static bool _called;
-    protected:
-        std::function<void(some_type_t&)> _freeFunc;
 };
 
 bool GuardTest::_called { false };
 
 void GuardTest::SetUp() {
     _called = false;
-    _freeFunc = [this](some_type_t &ptr) {
-        ptr.x = 2222;
-        ptr.data = nullptr;
-        some_free_func(&ptr);
-        _called = true;
-    };
-
 }
 
 template <class T>
@@ -45,8 +35,14 @@ void GuardTest::TearDown() {
 
 TEST_F(GuardTest, testPassingPointerToAllocatedMemory) {
     {
+        auto freeFunc = [this](some_type_t &ptr) {
+            ptr.x = 2222;
+            ptr.data = nullptr;
+            some_free_func(&ptr);
+            _called = true;
+        };
         ASSERT_FALSE(_called);
-        Guard<some_type_t, decltype(_freeFunc)> guard {_freeFunc};
+        Guard<some_type_t, decltype(freeFunc)> guard {freeFunc};
         ASSERT_FALSE(_called);
         do_init_work(&guard.get());
         ASSERT_FALSE(_called);
