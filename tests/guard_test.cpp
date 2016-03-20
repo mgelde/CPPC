@@ -59,3 +59,15 @@ TEST_F(GuardTest, testWithCustomDeleter) {
     }
     ASSERT_CALLED(MockAPI::instance().releaseResourcesFunc());
 }
+
+TEST_F(GuardTest, testWithUniquePointer) {
+    {
+        Guard<some_type_t,
+            CustomDeleter<some_type_t>,
+            UniquePointerStoragePolicy<some_type_t>> guard {};
+        ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
+        do_init_work(&guard.get());
+        ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
+    }
+    ASSERT_CALLED(MockAPI::instance().releaseResourcesFunc());
+}

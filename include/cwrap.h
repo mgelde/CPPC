@@ -1,6 +1,8 @@
 #pragma once
 
 #include <functional>
+#include <memory>
+#include <type_traits>
 
 namespace cwrap {
 
@@ -29,80 +31,97 @@ struct DefaultFreePolicy {
 };
 
 template <class T>
-struct DefaultMemoryPolicy {
-    using RawType = std::remove_reference_t<T>;
-    using StorageType = RawType;
+struct ByValueStoragePolicy {
+    using StorageType = std::remove_reference_t<T>;
 
-    inline static const RawType& getFrom(const StorageType &t) {
+    inline static const std::add_lvalue_reference_t<T> getFrom(const StorageType &t) {
         return t;
     }
 
-    inline static RawType& getFrom(StorageType &t) {
+    inline static std::add_lvalue_reference_t<T> getFrom(StorageType &t) {
         return t;
     }
 
     template <class ...Args>
     inline static StorageType createFrom(Args &&...args) {
-        return RawType(std::forward<Args>(args)...);
+        return std::remove_reference_t<T>(std::forward<Args>(args)...);
+    }
+};
+
+template <class T> //TODO deleter
+struct UniquePointerStoragePolicy {
+    using StorageType = std::unique_ptr<std::remove_reference_t<T>>;
+
+    inline static const std::add_lvalue_reference_t<T> getFrom(const StorageType &t) {
+        return *t;
+    }
+
+    inline static std::add_lvalue_reference_t<T> getFrom(StorageType &t) {
+        return *t;
+    }
+
+    template <class ...Args>
+    inline static StorageType createFrom(Args&& ...args) {
+        return std::make_unique<std::remove_reference_t<T>>(std::forward<Args>(args)...);
     }
 };
 
 template <class Type,
-     class FreePolicy=DefaultFreePolicy<Type>,
-     class MemoryPolicy=DefaultMemoryPolicy<Type>
-     >
+         class FreePolicy=DefaultFreePolicy<Type>,
+         class MemoryPolicy=ByValueStoragePolicy<Type>>
 class Guard {
-public:
+    public:
 
-    Guard()
-        : _guarded { MemoryPolicy::createFrom() }
-        , _freeFunc {} {}
+        Guard()
+            : _guarded { MemoryPolicy::createFrom() }
+            , _freeFunc {} {}
 
-    Guard(FreePolicy func)
-        : _guarded { MemoryPolicy::createFrom() }
-        , _freeFunc { func } {}
+        Guard(FreePolicy func)
+            : _guarded { MemoryPolicy::createFrom() }
+            , _freeFunc { func } {}
 
-    ~Guard() {
-        _freeFunc(MemoryPolicy::getFrom(_guarded));
-    }
+        ~Guard() {
+            _freeFunc(MemoryPolicy::getFrom(_guarded));
+        }
 
-    const Type &get() const {
-        return MemoryPolicy::getFrom(_guarded);
-    }
+        const Type &get() const {
+            return MemoryPolicy::getFrom(_guarded);
+        }
 
-    Type &get() {
-        return MemoryPolicy::getFrom(_guarded);
-    }
+        Type &get() {
+            return MemoryPolicy::getFrom(_guarded);
+        }
 
-    template <class T, class F, class M>
-    friend Guard<T,F,M> make_guarded(F, T);
+        template <class T, class F, class M>
+        friend Guard<T, F, M> make_guarded(F, T);
 
-private:
-    typename MemoryPolicy::StorageType _guarded;
-    FreePolicy _freeFunc;
+    private:
+        typename MemoryPolicy::StorageType _guarded;
+        FreePolicy _freeFunc;
 
-    Guard(FreePolicy func, Type t)
-        : _guarded { MemoryPolicy::createFrom(t) }
-        , _freeFunc { func } {}
+        Guard(FreePolicy func, Type t)
+            : _guarded { MemoryPolicy::createFrom(t) }
+            , _freeFunc { func } {}
 
-    Guard(Type t)
-        : _guarded { MemoryPolicy::createFrom(t) }
-        , _freeFunc {} {}
+        Guard(Type t)
+            : _guarded { MemoryPolicy::createFrom(t) }
+            , _freeFunc {} {}
 };
 
 template <class T,
-     class FreePolicy=DefaultFreePolicy<T>,
-     class MemoryPolicy=DefaultMemoryPolicy<T>>
+         class FreePolicy=DefaultFreePolicy<T>,
+         class MemoryPolicy=ByValueStoragePolicy<T>>
 Guard<T, FreePolicy, MemoryPolicy> make_guarded(FreePolicy policy, T t) {
     return Guard<std::remove_reference_t<T>, FreePolicy, MemoryPolicy> { policy, t };
 }
 
 template <class T,
-     class FreePolicy=DefaultFreePolicy<T>,
-     class MemoryPolicy=DefaultMemoryPolicy<T>>
+         class FreePolicy=DefaultFreePolicy<T>,
+         class MemoryPolicy=ByValueStoragePolicy<T>>
 Guard<T, FreePolicy, MemoryPolicy> make_guarded(T t) {
     return Guard<std::remove_reference_t<T>, FreePolicy, MemoryPolicy> { t };
 }
 
 }
+
 }
