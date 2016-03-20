@@ -68,58 +68,62 @@ struct UniquePointerStoragePolicy {
 
 template <class Type,
          class FreePolicy=DefaultFreePolicy<Type>,
-         class MemoryPolicy=ByValueStoragePolicy<Type>>
+         class StoragePolicy=ByValueStoragePolicy<Type>>
 class Guard {
     public:
 
+        template <typename = std::enable_if<
+            std::is_default_constructible<FreePolicy>::value>>
         Guard()
-            : _guarded { MemoryPolicy::createFrom() }
+            : _guarded { StoragePolicy::createFrom() }
             , _freeFunc {} {}
 
         Guard(FreePolicy func)
-            : _guarded { MemoryPolicy::createFrom() }
+            : _guarded { StoragePolicy::createFrom() }
             , _freeFunc { func } {}
 
         ~Guard() {
-            _freeFunc(MemoryPolicy::getFrom(_guarded));
+            _freeFunc(StoragePolicy::getFrom(_guarded));
         }
 
         const Type &get() const {
-            return MemoryPolicy::getFrom(_guarded);
+            return StoragePolicy::getFrom(_guarded);
         }
 
         Type &get() {
-            return MemoryPolicy::getFrom(_guarded);
+            return StoragePolicy::getFrom(_guarded);
         }
 
         template <class T, class F, class M>
         friend Guard<T, F, M> make_guarded(F, T);
 
     private:
-        typename MemoryPolicy::StorageType _guarded;
+        typename StoragePolicy::StorageType _guarded;
         FreePolicy _freeFunc;
 
         Guard(FreePolicy func, Type t)
-            : _guarded { MemoryPolicy::createFrom(t) }
+            : _guarded { StoragePolicy::createFrom(t) }
             , _freeFunc { func } {}
 
+        template <typename = std::enable_if<
+            std::is_default_constructible<FreePolicy>::value>>
         Guard(Type t)
-            : _guarded { MemoryPolicy::createFrom(t) }
+            : _guarded { StoragePolicy::createFrom(t) }
             , _freeFunc {} {}
 };
 
 template <class T,
          class FreePolicy=DefaultFreePolicy<T>,
-         class MemoryPolicy=ByValueStoragePolicy<T>>
-Guard<T, FreePolicy, MemoryPolicy> make_guarded(FreePolicy policy, T t) {
-    return Guard<std::remove_reference_t<T>, FreePolicy, MemoryPolicy> { policy, t };
+         class StoragePolicy=ByValueStoragePolicy<T>>
+Guard<T, FreePolicy, StoragePolicy> make_guarded(FreePolicy policy, T t) {
+    return Guard<std::remove_reference_t<T>, FreePolicy, StoragePolicy> { policy, t };
 }
 
 template <class T,
          class FreePolicy=DefaultFreePolicy<T>,
-         class MemoryPolicy=ByValueStoragePolicy<T>>
-Guard<T, FreePolicy, MemoryPolicy> make_guarded(T t) {
-    return Guard<std::remove_reference_t<T>, FreePolicy, MemoryPolicy> { t };
+         class StoragePolicy=ByValueStoragePolicy<T>>
+Guard<T, FreePolicy, StoragePolicy> make_guarded(T t) {
+    return Guard<std::remove_reference_t<T>, FreePolicy, StoragePolicy> { t };
 }
 
 }
