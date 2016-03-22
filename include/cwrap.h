@@ -55,7 +55,7 @@ template <class T>
 struct ByValueStoragePolicy {
     using StorageType = std::remove_reference_t<T>;
 
-    inline static const std::add_lvalue_reference_t<T> getFrom(const StorageType &t) {
+    inline static std::add_lvalue_reference_t<const T> getFrom(const StorageType &t) {
         return t;
     }
 
@@ -93,8 +93,8 @@ template <class Type,
 class Guard {
     public:
 
-        template <typename = std::enable_if<
-            std::is_default_constructible<FreePolicy>::value>>
+        template <class F=FreePolicy,
+                 typename = std::enable_if_t<std::is_default_constructible<F>::value> >
         Guard()
             : _guarded { StoragePolicy::createFrom() }
             , _freeFunc {} {}
@@ -126,8 +126,9 @@ class Guard {
             : _guarded { StoragePolicy::createFrom(t) }
             , _freeFunc { func } {}
 
-        template <typename = std::enable_if<
-            std::is_default_constructible<FreePolicy>::value>>
+        template <class F=FreePolicy,
+                 typename = std::enable_if_t<std::is_default_constructible<F>::value>
+                 >
         Guard(Type t)
             : _guarded { StoragePolicy::createFrom(t) }
             , _freeFunc {} {}
@@ -135,14 +136,17 @@ class Guard {
 
 template <class T,
          class FreePolicy=DefaultFreePolicy<T>,
-         class StoragePolicy=ByValueStoragePolicy<T>>
+         class StoragePolicy=ByValueStoragePolicy<T>
+         >
 Guard<T, FreePolicy, StoragePolicy> make_guarded(FreePolicy policy, T t) {
     return Guard<std::remove_reference_t<T>, FreePolicy, StoragePolicy> { policy, t };
 }
 
 template <class T,
          class FreePolicy=DefaultFreePolicy<T>,
-         class StoragePolicy=ByValueStoragePolicy<T>>
+         class StoragePolicy=ByValueStoragePolicy<T>,
+         typename = std::enable_if_t<std::is_default_constructible<FreePolicy>::value>
+         >
 Guard<T, FreePolicy, StoragePolicy> make_guarded(T t) {
     return Guard<std::remove_reference_t<T>, FreePolicy, StoragePolicy> { t };
 }

@@ -50,7 +50,7 @@ TEST_F(GuardTest, testPassingPointerToAllocatedMemory) {
         auto freeFunc = [this](some_type_t &ptr) {
             release_resources(&ptr);
         };
-        Guard<some_type_t, decltype(freeFunc)> guard {freeFunc};
+        Guard<some_type_t, decltype(freeFunc)> guard { freeFunc };
         ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
         do_init_work(&guard.get());
         ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
@@ -92,3 +92,20 @@ TEST_F(GuardTest, testWithUniquePointer) {
     }
     ASSERT_CALLED(MockAPI::instance().releaseResourcesFunc());
 }
+
+class TypeWithouDefaultConstructor {
+    TypeWithouDefaultConstructor(int) {}
+};
+using NonDefaultConstructibleGuard = Guard<some_type_t, TypeWithouDefaultConstructor>;
+
+static_assert(!std::is_default_constructible<NonDefaultConstructibleGuard>::value,
+        "If deleter has no default constructor, should not be default-construtible");
+
+static_assert(std::is_default_constructible<Guard<some_type_t>>::value,
+        "Default deleter is default constructible");
+
+static_assert(std::is_const<
+        std::remove_reference_t<decltype(std::declval<const Guard<int>>().get())>
+        >::value,
+        "Policy respects const correctness.");
+
