@@ -24,6 +24,7 @@
 #include <functional>
 #include <memory>
 #include <type_traits>
+#include <utility>
 
 namespace cwrap {
 
@@ -87,21 +88,48 @@ struct UniquePointerStoragePolicy {
     }
 };
 
-template <class Type,
+template <class Type,//TODO: think about corner cases with reference types here
          class FreePolicy=DefaultFreePolicy<Type>,
          class StoragePolicy=ByValueStoragePolicy<Type>>
 class Guard {
     public:
-
         template <class F=FreePolicy,
-                 typename = std::enable_if_t<std::is_default_constructible<F>::value> >
+                 typename = std::enable_if_t<
+                     std::is_default_constructible<F>::value>>//TODO: replace by static assert in body?
         Guard()
             : _guarded { StoragePolicy::createFrom() }
             , _freeFunc {} {}
 
-        Guard(FreePolicy func)
+        Guard(std::remove_reference_t<FreePolicy> &&func)
+            : _guarded { StoragePolicy::createFrom() }
+            , _freeFunc { std::move(func) } {}
+
+        //if the FreePolicy is a reference, we need to initialize a potential non-const ref from a non-const ref
+        Guard(typename std::conditional<
+                std::is_reference<FreePolicy>::value,
+                FreePolicy,
+                const FreePolicy&>::type func)
             : _guarded { StoragePolicy::createFrom() }
             , _freeFunc { func } {}
+
+        Guard(typename std::conditional<
+                std::is_reference<FreePolicy>::value,
+                FreePolicy,
+                const FreePolicy&>::type func,
+                Type t)
+            : _guarded { StoragePolicy::createFrom(t) }
+            , _freeFunc { func } {}
+
+        Guard(std::remove_reference_t<FreePolicy> &&func, Type t)
+            : _guarded { StoragePolicy::createFrom(t) }
+            , _freeFunc { std::move(func) } {}
+
+        template <class F=FreePolicy,
+                 typename = std::enable_if_t<
+                     std::is_default_constructible<F>::value>>
+        Guard(Type t)
+            : _guarded { StoragePolicy::createFrom(t) }
+            , _freeFunc {} {}
 
         ~Guard() {
             _freeFunc(StoragePolicy::getFrom(_guarded));
@@ -115,38 +143,23 @@ class Guard {
             return StoragePolicy::getFrom(_guarded);
         }
 
-        template <class T, class F, class M>
-        friend Guard<T, F, M> make_guarded(F, T);
-
     private:
         typename StoragePolicy::StorageType _guarded;
         FreePolicy _freeFunc;
-
-        Guard(FreePolicy func, Type t)
-            : _guarded { StoragePolicy::createFrom(t) }
-            , _freeFunc { func } {}
-
-        template <class F=FreePolicy,
-                 typename = std::enable_if_t<std::is_default_constructible<F>::value>
-                 >
-        Guard(Type t)
-            : _guarded { StoragePolicy::createFrom(t) }
-            , _freeFunc {} {}
 };
 
 template <class T,
          class FreePolicy=DefaultFreePolicy<T>,
-         class StoragePolicy=ByValueStoragePolicy<T>
-         >
+         class StoragePolicy=ByValueStoragePolicy<T>>
 Guard<T, FreePolicy, StoragePolicy> make_guarded(FreePolicy policy, T t) {
-    return Guard<std::remove_reference_t<T>, FreePolicy, StoragePolicy> { policy, t };
+    return Guard<std::remove_reference_t<T>, FreePolicy, StoragePolicy> { policy, t };//TODO: make these forward
 }
 
 template <class T,
          class FreePolicy=DefaultFreePolicy<T>,
          class StoragePolicy=ByValueStoragePolicy<T>,
-         typename = std::enable_if_t<std::is_default_constructible<FreePolicy>::value>
-         >
+         typename = std::enable_if_t<
+            std::is_default_constructible<FreePolicy>::value>>
 Guard<T, FreePolicy, StoragePolicy> make_guarded(T t) {
     return Guard<std::remove_reference_t<T>, FreePolicy, StoragePolicy> { t };
 }
