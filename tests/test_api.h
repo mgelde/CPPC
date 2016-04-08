@@ -82,14 +82,19 @@ struct __mock_call_operator {
         bool called() const {
             return _called;
         }
+        unsigned int numCalls() const {
+            return _numCalled;
+        }
     protected:
         bool _called { false };
+        unsigned int _numCalled { 0 };
 };
 
 struct release_resources_operator : public __mock_call_operator {
     void operator() (some_type_t *ptr) {
         ptr->released = true;
         _called = true;
+        _numCalled++;
     }
 };
 
@@ -101,6 +106,7 @@ struct free_resources_operator : public __mock_call_operator {
         release_resources(ptr);
         ptr->freed = true;
         _called = true;
+        _numCalled++;
     }
 };
 
@@ -160,6 +166,11 @@ void ASSERT_CALLED(T &&t) {
 template <class T>
 void ASSERT_NOT_CALLED(T &&t) {
     ASSERT_FALSE(t.called());
+}
+
+template <class T>
+void ASSERT_NUM_CALLED(T &&t, unsigned int n) {
+    ASSERT_EQ(t.numCalls(), n);
 }
 
 }

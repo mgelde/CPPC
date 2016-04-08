@@ -131,8 +131,27 @@ class Guard {
             : _guarded { StoragePolicy::createFrom(t) }
             , _freeFunc {} {}
 
+        Guard(const Guard&) = delete;
+
+        Guard(Guard &&other)
+            : _guarded { std::move(other._guarded) }
+            , _freeFunc { std::move(other._freeFunc) } {
+            other._released = true;
+        }
+
+        Guard& operator=(const Guard&) = delete;
+
+        Guard& operator=(Guard &&other) {
+            _releaseIfNecessary();
+            _released = false;
+            _freeFunc = std::move(other._freeFunc);
+            _guarded = std::move(other._guarded);
+            other._released = true;
+            return *this;
+        }
+
         ~Guard() {
-            _freeFunc(StoragePolicy::getFrom(_guarded));
+            _releaseIfNecessary();
         }
 
         const Type &get() const {
@@ -146,6 +165,13 @@ class Guard {
     private:
         typename StoragePolicy::StorageType _guarded;
         FreePolicy _freeFunc;
+        bool _released { false };
+
+        inline void _releaseIfNecessary() {
+            if (!_released) {
+                _freeFunc(StoragePolicy::getFrom(_guarded));
+            }
+        }
 };
 
 template <class T,

@@ -122,6 +122,7 @@ class GuardMemoryMngmtTest : public ::testing::Test {
     public:
         void SetUp() override {
             CustomDeleterT::numberOfConstructorCalls = 0;
+            MockAPI::instance().reset();
         }
 };
 
@@ -158,6 +159,27 @@ TEST_F(GuardMemoryMngmtTest, testDeleterAsReference) {
     ASSERT_EQ(CustomDeleterT::numberOfConstructorCalls, 1);
 }
 
+TEST_F(GuardMemoryMngmtTest, testMoveConstruction) {
+    {
+        GuardT<CustomDeleterT> guard{};
+        ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
+        GuardT<CustomDeleterT> another { std::move(guard) };
+        ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
+    }
+    ASSERT_NUM_CALLED(MockAPI::instance().releaseResourcesFunc(), 1);
+}
+
+TEST_F(GuardMemoryMngmtTest, testMoveAssignment) {
+    {
+        GuardT<CustomDeleterT> guard{};
+        ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
+        GuardT<CustomDeleterT> another { std::move(guard) };
+        ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
+        guard = GuardT<CustomDeleterT> {};
+    }
+    ASSERT_NUM_CALLED(MockAPI::instance().releaseResourcesFunc(), 2);
+}
+
 /*
  * Static tests.
  *
@@ -190,4 +212,10 @@ static_assert(std::is_constructible<
         decltype(__deleterLambdaPrototype)
         >::value,
         "Constructor taking deleter policy should obey natural conversions");
+
+static_assert(!std::is_copy_assignable<GuardT<CustomDeleterT>>::value,
+        "Copy assignment should be disabled");
+
+static_assert(!std::is_copy_constructible<GuardT<CustomDeleterT>>::value,
+        "Copy construction should be disabled");
 
