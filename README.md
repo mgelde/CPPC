@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/mgelde/CWrap.svg?branch=master)](https://travis-ci.org/mgelde/CWrap)
+
 CWrap - Wrap C-code easily.
 =====
 
