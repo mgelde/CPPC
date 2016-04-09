@@ -13,6 +13,7 @@ before_install:
     - mkdir cmake_build
     - cd cmake_build
     - cmake /usr/src/gtest
+    - make
     - cd ..
 
 script:
