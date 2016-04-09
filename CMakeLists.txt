@@ -32,4 +32,5 @@ target_include_directories(CWrap INTERFACE
       $<INSTALL_INTERFACE:include/cwrapinclude>
 )
 
+enable_testing()
 add_subdirectory(tests)

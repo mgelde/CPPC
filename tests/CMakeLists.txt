@@ -18,7 +18,6 @@
 #   Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston, MA  02110-1301
 #   USA
 
-enable_testing()
 find_package(GTest QUIET)
 
 if(NOT ${GTEST_FOUND})
