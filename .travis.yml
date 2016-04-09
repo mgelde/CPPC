@@ -9,13 +9,6 @@ addons:
       - cmake-data
       - libgtest-dev
 
-before_install:
-    - mkdir cmake_build
-    - cd cmake_build
-    - cmake /usr/src/gtest
-    - make
-    - cd ..
-
 script:
     - mkdir build
     - cd build
