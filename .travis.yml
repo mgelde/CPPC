@@ -4,7 +4,10 @@ addons:
   apt:
     sources:
       - george-edison55-precise-backports
+      - ubuntu-toolchain-r-test
     packages:
+      - gcc-5
+      - g++-5
       - cmake
       - cmake-data
       - libgtest-dev
