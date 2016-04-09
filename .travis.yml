@@ -12,6 +12,8 @@ addons:
       - cmake-data
       - libgtest-dev
 
+env: CXX=/usr/bin/g++-5
+
 script:
     - mkdir build
     - cd build
