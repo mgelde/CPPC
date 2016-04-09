@@ -74,14 +74,16 @@ struct UniquePointerStoragePolicy {
     }
 };
 
-template <class Type,//TODO: think about corner cases with reference types here
+template <class Type,
          class FreePolicy=DefaultFreePolicy<Type>,
          class StoragePolicy=ByValueStoragePolicy<Type>>
 class Guard {
+    static_assert(!std::is_reference<Type>::value,
+            "Cannot guard references");
     public:
         template <class F=FreePolicy,
                  typename = std::enable_if_t<
-                     std::is_default_constructible<F>::value>>//TODO: replace by static assert in body?
+                     std::is_default_constructible<F>::value>>
         Guard()
             : _guarded { StoragePolicy::createFrom() }
             , _freeFunc {} {}
@@ -159,22 +161,6 @@ class Guard {
             }
         }
 };
-
-template <class T,
-         class FreePolicy=DefaultFreePolicy<T>,
-         class StoragePolicy=ByValueStoragePolicy<T>>
-Guard<T, FreePolicy, StoragePolicy> make_guarded(FreePolicy policy, T t) {
-    return Guard<std::remove_reference_t<T>, FreePolicy, StoragePolicy> { policy, t };//TODO: make these forward
-}
-
-template <class T,
-         class FreePolicy=DefaultFreePolicy<T>,
-         class StoragePolicy=ByValueStoragePolicy<T>,
-         typename = std::enable_if_t<
-            std::is_default_constructible<FreePolicy>::value>>
-Guard<T, FreePolicy, StoragePolicy> make_guarded(T t) {
-    return Guard<std::remove_reference_t<T>, FreePolicy, StoragePolicy> { t };
-}
 
 }
 

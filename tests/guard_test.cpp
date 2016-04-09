@@ -89,7 +89,7 @@ TEST_F(GuardFreeFuncTest, testInitFunctionReturningPointer) {
         auto freeFunc = [](some_type_t *&ptr) {
             free_resources(ptr);
         };
-        auto guard = make_guarded<some_type_t*, decltype(freeFunc)>(freeFunc, create_and_initialize());
+        auto guard = Guard<some_type_t*, decltype(freeFunc)> { freeFunc, create_and_initialize() };
         ASSERT_FALSE(guard.get()->isFreed());
         ASSERT_NOT_CALLED(MockAPI::instance().freeResourcesFunc());
     }
@@ -194,7 +194,6 @@ class TypeWithouDefaultConstructor {
 };
 
 using NonDefaultConstructibleGuard = GuardT< TypeWithouDefaultConstructor>;
-
 static_assert(!std::is_default_constructible<NonDefaultConstructibleGuard>::value,
         "If deleter has no default constructor, should not be default-construtible");
 
