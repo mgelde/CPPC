@@ -30,25 +30,10 @@ namespace cwrap {
 
 namespace guard {
 
-/*
-* Use-cases:
-*
-* 2.
-*
-* (b) In a variant of this, a pointer is returned as an argument pased in:
-*      struct some_type_t **ptr;
-*      int error = do_init_stuff(ptr, bla, blabla);
-*      if (error) {
-*          //handle error
-*      }
-*      free_func(*ptr);
-*
-*/
-
 template <class T>
 struct DefaultFreePolicy {
-    void operator() (std::remove_reference_t<T> &ptr) const {
-        (void) ptr;
+    void operator() (std::remove_reference_t<T> &t) const {
+        (void) t;
     }
 };
 
@@ -56,11 +41,11 @@ template <class T>
 struct ByValueStoragePolicy {
     using StorageType = std::remove_reference_t<T>;
 
-    inline static std::add_lvalue_reference_t<const T> getFrom(const StorageType &t) {
+    inline static std::add_lvalue_reference_t<const StorageType> getFrom(const StorageType &t) {
         return t;
     }
 
-    inline static std::add_lvalue_reference_t<T> getFrom(StorageType &t) {
+    inline static std::add_lvalue_reference_t<StorageType> getFrom(StorageType &t) {
         return t;
     }
 
@@ -72,19 +57,20 @@ struct ByValueStoragePolicy {
 
 template <class T> //TODO deleter
 struct UniquePointerStoragePolicy {
+    using RawType = std::remove_reference_t<T>;
     using StorageType = std::unique_ptr<std::remove_reference_t<T>>;
 
-    inline static const std::add_lvalue_reference_t<T> getFrom(const StorageType &t) {
+    inline static std::add_lvalue_reference_t<const RawType> getFrom(const StorageType &t) {
         return *t;
     }
 
-    inline static std::add_lvalue_reference_t<T> getFrom(StorageType &t) {
+    inline static std::add_lvalue_reference_t<RawType> getFrom(StorageType &t) {
         return *t;
     }
 
     template <class ...Args>
     inline static StorageType createFrom(Args&& ...args) {
-        return std::make_unique<std::remove_reference_t<T>>(std::forward<Args>(args)...);
+        return std::make_unique<RawType>(std::forward<Args>(args)...);
     }
 };
 

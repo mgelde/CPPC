@@ -114,6 +114,10 @@ TEST_F(GuardFreeFuncTest, testWithUniquePointer) {
         ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
         do_init_work(&guard.get());
         ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
+        static_assert(std::is_const<
+                std::remove_reference_t<decltype(const_cast<const decltype(guard)&>(guard).get())>
+                >::value,
+                "Should return a const ref");
     }
     ASSERT_CALLED(MockAPI::instance().releaseResourcesFunc());
 }
