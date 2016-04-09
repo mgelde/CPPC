@@ -7,9 +7,16 @@ addons:
     packages:
       - cmake
       - cmake-data
-      - google-mock
       - libgtest-dev
 
+before_install:
+    - mkdir cmake_build
+    - cd cmake_build
+    - cmake /usr/src/gtest
+    - cd ..
+
 script:
-    - cmake .
+    - mkdir build
+    - cd build
+    - cmake ..
     - make

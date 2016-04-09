@@ -33,7 +33,7 @@ find_package(GTest REQUIRED)
 add_library(CWrap INTERFACE)
 target_include_directories(CWrap INTERFACE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:include/cwrapinclud>
+      $<INSTALL_INTERFACE:include/cwrapinclude>
 )
 
 add_subdirectory(tests)
