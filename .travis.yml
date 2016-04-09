@@ -12,7 +12,9 @@ addons:
       - cmake-data
       - libgtest-dev
 
-env: CXX=/usr/bin/g++-5
+before_script:
+    - export CXX=/usr/bin/g++-5
+    - export CC=/usr/bin/gcc-5
 
 script:
     - mkdir build
