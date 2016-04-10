@@ -20,6 +20,7 @@
  */
 
 #include <iostream>
+#include <stdexcept>
 
 #include "gtest/gtest.h"
 
@@ -34,12 +35,13 @@ TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
         called = true;
         return y ? 2*x : x;
     };
-    CallGuard<decltype(func), int, int, bool> guard { std::move(func) };
+    CallGuard<decltype(func),
+        int,
+        IsNotNegativeReturnCheckPolicy<int>> guard { std::move(func) };
     ASSERT_FALSE(called);
     int x = guard(8, true);
     ASSERT_TRUE(called);
     ASSERT_EQ(x, 16);
-    std::cout << "Sizeof guard: " << sizeof(guard) << std::endl;
 }
 
 TEST(CallGuardTest, testCallGuardDefaultConstructor) {
@@ -48,7 +50,31 @@ TEST(CallGuardTest, testCallGuardDefaultConstructor) {
             return x > 0;
         }
     };
+    struct CustomReturnPolicy {
+        static inline bool returnValueIsOk(bool b) {
+            return b;
+        }
+    };
 
-    CallGuard<Functor, bool, int> guard{};
+    CallGuard<Functor, bool, CustomReturnPolicy> guard{};
     ASSERT_TRUE(guard(17));
+}
+
+TEST(CallGuardTest, testIsZeroReturnCheckPolicy) {
+    auto lambda = [](int x) { return x; };
+    //IsZeroReturnCheckPolicy should be default, so don't specify it.
+    CallGuard<decltype(lambda), int> guard { std::move(lambda) };
+    ASSERT_THROW(guard(1), std::runtime_error);
+    ASSERT_THROW(guard(-1), std::runtime_error);
+    ASSERT_NO_THROW(guard(0));
+}
+
+TEST(CallGuardTest, testIsNotNegativeCheckPolicy) {
+    auto lambda = [](int x) { return x; };
+    CallGuard<decltype(lambda),
+        int,
+        IsNotNegativeReturnCheckPolicy<int>> guard { std::move(lambda) };
+    ASSERT_NO_THROW(guard(1));
+    ASSERT_NO_THROW(guard(0));
+    ASSERT_THROW(guard(-1), std::runtime_error);
 }

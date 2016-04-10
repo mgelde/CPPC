@@ -21,15 +21,53 @@
 
 #pragma once
 
+#include <stdexcept>
+#include <functional>
 #include <utility>
+#include <type_traits>
 
 namespace cwrap {
 
 namespace error {
 
+template <class Rv>
+struct DefaultErrorPolicy {
+
+    static inline void handleError(std::remove_reference_t<Rv>&) {
+                throw std::runtime_error(
+                        std::string("Return value indicated error"));
+            }
+
+};
+
+template <class Rv>
+struct IsZeroReturnCheckPolicy {
+    static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
+            "Must be an integral value");
+
+    static inline bool returnValueIsOk(const std::remove_reference_t<Rv> &rv) {
+        return rv == 0;
+    }
+
+};
+
+template <class Rv>
+struct IsNotNegativeReturnCheckPolicy {
+    static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
+            "Must be an integral value");
+    static_assert(std::is_signed<std::remove_reference_t<Rv>>::value,
+            "Must be a signed type");
+
+    static inline bool returnValueIsOk(const std::remove_reference_t<Rv> &rv) {
+        return rv >= 0;
+    }
+
+};
+
 template <class Functor,
          class Rv,
-         class ...Args>
+         class ReturnCheckPolicy=IsZeroReturnCheckPolicy<Rv>,
+         class ErrorPolicy=DefaultErrorPolicy<Rv>>
 class CallGuard {
     public:
         template <class T>
@@ -41,8 +79,13 @@ class CallGuard {
         CallGuard()
             : _functor {} {}
 
+        template <class ...Args>
         Rv operator() (Args&& ...args) {
-            return _functor(std::forward<Args>(args)...);
+            Rv retVal = _functor(std::forward<Args>(args)...);
+            if (!ReturnCheckPolicy::returnValueIsOk(retVal)) {
+                ErrorPolicy::handleError(retVal);
+            }
+            return retVal;
         }
     private:
         Functor _functor;
