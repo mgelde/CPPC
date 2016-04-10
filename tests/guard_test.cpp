@@ -1,4 +1,4 @@
-    /*
+/*
  *  CWrap - A library to use C-code in C++.
  *  Copyright (C) 2016  Marcus Gelderie
  *

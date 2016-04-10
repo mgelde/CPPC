@@ -32,8 +32,7 @@ namespace guard {
 
 template <class T>
 struct DefaultFreePolicy {
-    void operator() (std::remove_reference_t<T> &t) const {
-        (void) t;
+    void operator() (std::remove_reference_t<T>&) const {
     }
 };
 

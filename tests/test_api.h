@@ -54,14 +54,14 @@ class some_type_t {
         friend struct release_resources_operator;
         friend struct free_resources_operator;
         friend struct do_init_work_operator;
-        friend struct  create_and_initialize_operator;
+        friend struct create_and_initialize_operator;
 
     private:
         bool released = false;
         bool freed = false;
 };
 
-static some_type_t __some_type;
+static some_type_t __some_type {};
 
 void do_init_work(some_type_t *ptr) {
     if (ptr) {

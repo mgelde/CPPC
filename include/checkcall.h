@@ -21,5 +21,33 @@
 
 #pragma once
 
-#include "checkcall.h"
-#include "guard.h"
+#include <utility>
+
+namespace cwrap {
+
+namespace error {
+
+template <class Functor,
+         class Rv,
+         class ...Args>
+class CallGuard {
+    public:
+        template <class T>
+        CallGuard(T &&t)
+            : _functor { std::forward<T>(t) } {}
+
+        template <class T=Functor,
+                 typename = std::enable_if_t<std::is_default_constructible<T>::value>>
+        CallGuard()
+            : _functor {} {}
+
+        Rv operator() (Args&& ...args) {
+            return _functor(std::forward<Args>(args)...);
+        }
+    private:
+        Functor _functor;
+};
+
+} //::error
+
+} //::cwrap

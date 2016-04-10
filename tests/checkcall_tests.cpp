@@ -19,7 +19,36 @@
  *  USA
  */
 
-#pragma once
+#include <iostream>
 
+#include "gtest/gtest.h"
+
+#include "test_api.h"
 #include "checkcall.h"
-#include "guard.h"
+
+using namespace cwrap::error;
+
+TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
+    bool called { false };
+    auto func = [&called] (int x, bool y) {
+        called = true;
+        return y ? 2*x : x;
+    };
+    CallGuard<decltype(func), int, int, bool> guard { std::move(func) };
+    ASSERT_FALSE(called);
+    int x = guard(8, true);
+    ASSERT_TRUE(called);
+    ASSERT_EQ(x, 16);
+    std::cout << "Sizeof guard: " << sizeof(guard) << std::endl;
+}
+
+TEST(CallGuardTest, testCallGuardDefaultConstructor) {
+    struct Functor {
+        bool operator() (int x) {
+            return x > 0;
+        }
+    };
+
+    CallGuard<Functor, bool, int> guard{};
+    ASSERT_TRUE(guard(17));
+}
