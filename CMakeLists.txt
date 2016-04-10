@@ -19,7 +19,7 @@
 #   USA
 
 cmake_minimum_required (VERSION 3.0.2)
-project (CWrap)
+project (CWrap CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
