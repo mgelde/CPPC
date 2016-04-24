@@ -30,44 +30,45 @@ namespace cwrap {
 
 namespace error {
 
-template <class Rv>
 struct DefaultErrorPolicy {
 
-    static inline void handleError(std::remove_reference_t<Rv>&) {
-                throw std::runtime_error(
-                        std::string("Return value indicated error"));
-            }
+    template <class Rv>
+    static inline void handleError(const Rv&) {
+        throw std::runtime_error(
+                std::string("Return value indicated error"));
+    }
 
 };
 
-template <class Rv>
 struct IsZeroReturnCheckPolicy {
-    static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
-            "Must be an integral value");
 
-    static inline bool returnValueIsOk(const std::remove_reference_t<Rv> &rv) {
+    template <class Rv>
+    static inline bool returnValueIsOk(const Rv &rv) {
+        static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
+                "Must be an integral value");
+
         return rv == 0;
     }
 
 };
 
-template <class Rv>
 struct IsNotNegativeReturnCheckPolicy {
-    static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
-            "Must be an integral value");
-    static_assert(std::is_signed<std::remove_reference_t<Rv>>::value,
-            "Must be a signed type");
 
-    static inline bool returnValueIsOk(const std::remove_reference_t<Rv> &rv) {
+    template <class Rv>
+    static inline bool returnValueIsOk(const Rv &rv) {
+        static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
+                "Must be an integral value");
+        static_assert(std::is_signed<std::remove_reference_t<Rv>>::value,
+                "Must be a signed type");
+
         return rv >= 0;
     }
 
 };
 
 template <class Functor,
-         class Rv,
-         class ReturnCheckPolicy=IsZeroReturnCheckPolicy<Rv>,
-         class ErrorPolicy=DefaultErrorPolicy<Rv>>
+         class ReturnCheckPolicy=IsZeroReturnCheckPolicy,
+         class ErrorPolicy=DefaultErrorPolicy>
 class CallGuard {
     public:
         template <class T>
@@ -80,7 +81,8 @@ class CallGuard {
             : _functor {} {}
 
         template <class ...Args>
-        Rv operator() (Args&& ...args) {
+        auto operator() (Args&& ...args) {
+            using Rv = decltype(_functor(args...));
             Rv retVal = _functor(std::forward<Args>(args)...);
             if (!ReturnCheckPolicy::returnValueIsOk(retVal)) {
                 ErrorPolicy::handleError(retVal);

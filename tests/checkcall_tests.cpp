@@ -36,8 +36,7 @@ TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
         return y ? 2*x : x;
     };
     CallGuard<decltype(func),
-        int,
-        IsNotNegativeReturnCheckPolicy<int>> guard { std::move(func) };
+        IsNotNegativeReturnCheckPolicy> guard { std::move(func) };
     ASSERT_FALSE(called);
     int x = guard(8, true);
     ASSERT_TRUE(called);
@@ -56,14 +55,16 @@ TEST(CallGuardTest, testCallGuardDefaultConstructor) {
         }
     };
 
-    CallGuard<Functor, bool, CustomReturnPolicy> guard{};
+    CallGuard<Functor, CustomReturnPolicy> guard{};
     ASSERT_TRUE(guard(17));
+    static_assert(std::is_same<bool, decltype(guard(17))>::value,
+                "Return type should be identical to functor");
 }
 
 TEST(CallGuardTest, testIsZeroReturnCheckPolicy) {
     auto lambda = [](int x) { return x; };
     //IsZeroReturnCheckPolicy should be default, so don't specify it.
-    CallGuard<decltype(lambda), int> guard { std::move(lambda) };
+    CallGuard<decltype(lambda)> guard { std::move(lambda) };
     ASSERT_THROW(guard(1), std::runtime_error);
     ASSERT_THROW(guard(-1), std::runtime_error);
     ASSERT_NO_THROW(guard(0));
@@ -72,8 +73,7 @@ TEST(CallGuardTest, testIsZeroReturnCheckPolicy) {
 TEST(CallGuardTest, testIsNotNegativeCheckPolicy) {
     auto lambda = [](int x) { return x; };
     CallGuard<decltype(lambda),
-        int,
-        IsNotNegativeReturnCheckPolicy<int>> guard { std::move(lambda) };
+        IsNotNegativeReturnCheckPolicy> guard { std::move(lambda) };
     ASSERT_NO_THROW(guard(1));
     ASSERT_NO_THROW(guard(0));
     ASSERT_THROW(guard(-1), std::runtime_error);
