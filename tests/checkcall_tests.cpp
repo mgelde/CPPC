@@ -19,6 +19,8 @@
  *  USA
  */
 
+#include <cerrno>
+#include <cstring>
 #include <iostream>
 #include <stdexcept>
 
@@ -44,6 +46,7 @@ TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
 }
 
 TEST(CallGuardTest, testCallGuardDefaultConstructor) {
+    //functor has a default constructor
     struct Functor {
         bool operator() (int x) {
             return x > 0;
@@ -77,4 +80,47 @@ TEST(CallGuardTest, testIsNotNegativeCheckPolicy) {
     ASSERT_NO_THROW(guard(1));
     ASSERT_NO_THROW(guard(0));
     ASSERT_THROW(guard(-1), std::runtime_error);
+}
+
+TEST(CallGuardTest, defaultErrorPolicyTest) {
+    auto lambda = [](int x) { return x; };
+    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy> guard { std::move(lambda) };
+    try {
+        guard(-1337);
+    } catch (const std::runtime_error &e) {
+        ASSERT_NE(std::string::npos, std::string(e.what()).find("-1337"));
+        return;
+    }
+    FAIL() << "Execution should not reach this line";
+}
+
+TEST(CallGuardTest, testErrnoErrorPolicy) {
+    auto lambda = [](int x) { return x; };
+    CallGuard<decltype(lambda),
+        IsNotNegativeReturnCheckPolicy,
+        ErrnoErrorPolicy> guard { std::move(lambda) };
+    errno = EINVAL;
+    try {
+        guard(-1337);
+    } catch (const std::runtime_error &e) {
+        ASSERT_EQ(std::string(e.what()),
+                std::string(std::strerror(EINVAL)));
+        return;
+    }
+    FAIL() << "Execution should not reach this line";
+}
+
+TEST(CallGuardTest, testErrorCodeErrorPolicy) {
+    auto lambda = [](int x) { return x; };
+    CallGuard<decltype(lambda),
+        IsNotNegativeReturnCheckPolicy,
+        ReturnCodeErrorPolicy> guard { std::move(lambda) };
+    try {
+        guard(-EINVAL);
+    } catch (const std::runtime_error &e) {
+        ASSERT_EQ(std::string(e.what()),
+                std::string(std::strerror(EINVAL)));
+        return;
+    }
+    FAIL() << "Execution should not reach this line";
 }

@@ -21,27 +21,43 @@
 
 #pragma once
 
-#include <stdexcept>
+#include <cerrno>
+#include <cstring>
 #include <functional>
-#include <utility>
+#include <stdexcept>
+#include <sstream>
 #include <type_traits>
+#include <utility>
 
 namespace cwrap {
 
 namespace error {
 
 struct DefaultErrorPolicy {
+    template <class Rv>
+    static inline void handleError(const Rv& rv) {
+        std::ostringstream stream { "Return value indicated error. Got: " };
+        stream << rv;
+        throw std::runtime_error(stream.str());
+    }
+};
 
+struct ErrnoErrorPolicy {
     template <class Rv>
     static inline void handleError(const Rv&) {
         throw std::runtime_error(
-                std::string("Return value indicated error"));
+                std::strerror(errno));
     }
+};
 
+struct ReturnCodeErrorPolicy {
+    static inline void handleError(int rv) {
+        throw std::runtime_error(
+                std::strerror(-rv));
+    }
 };
 
 struct IsZeroReturnCheckPolicy {
-
     template <class Rv>
     static inline bool returnValueIsOk(const Rv &rv) {
         static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
@@ -49,11 +65,9 @@ struct IsZeroReturnCheckPolicy {
 
         return rv == 0;
     }
-
 };
 
 struct IsNotNegativeReturnCheckPolicy {
-
     template <class Rv>
     static inline bool returnValueIsOk(const Rv &rv) {
         static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
@@ -63,7 +77,6 @@ struct IsNotNegativeReturnCheckPolicy {
 
         return rv >= 0;
     }
-
 };
 
 template <class Functor,
