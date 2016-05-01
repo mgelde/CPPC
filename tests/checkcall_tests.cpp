@@ -114,7 +114,7 @@ TEST(CallGuardTest, testErrorCodeErrorPolicy) {
     auto lambda = [](int x) { return x; };
     CallGuard<decltype(lambda),
         IsNotNegativeReturnCheckPolicy,
-        ReturnCodeErrorPolicy> guard { std::move(lambda) };
+        ErrorCodeErrorPolicy> guard { std::move(lambda) };
     try {
         guard(-EINVAL);
     } catch (const std::runtime_error &e) {

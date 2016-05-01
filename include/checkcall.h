@@ -33,7 +33,7 @@ namespace cwrap {
 
 namespace error {
 
-struct DefaultErrorPolicy {
+struct ReportReturnValueErrorPolicy {
     template <class Rv>
     static inline void handleError(const Rv& rv) {
         std::ostringstream stream { "Return value indicated error. Got: " };
@@ -50,12 +50,14 @@ struct ErrnoErrorPolicy {
     }
 };
 
-struct ReturnCodeErrorPolicy {
+struct ErrorCodeErrorPolicy {
     static inline void handleError(int rv) {
         throw std::runtime_error(
                 std::strerror(-rv));
     }
 };
+
+using DefaultErrorPolicy = ReportReturnValueErrorPolicy;
 
 struct IsZeroReturnCheckPolicy {
     template <class Rv>
@@ -79,8 +81,10 @@ struct IsNotNegativeReturnCheckPolicy {
     }
 };
 
+using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
+
 template <class Functor,
-         class ReturnCheckPolicy=IsZeroReturnCheckPolicy,
+         class ReturnCheckPolicy=DefaultReturnCheckPolicy,
          class ErrorPolicy=DefaultErrorPolicy>
 class CallGuard {
     public:
@@ -89,14 +93,14 @@ class CallGuard {
             : _functor { std::forward<T>(t) } {}
 
         template <class T=Functor,
-                 typename = std::enable_if_t<std::is_default_constructible<T>::value>>
+                 typename = std::enable_if_t<
+                     std::is_default_constructible<T>::value>>
         CallGuard()
             : _functor {} {}
 
         template <class ...Args>
         auto operator() (Args&& ...args) {
-            using Rv = decltype(_functor(args...));
-            Rv retVal = _functor(std::forward<Args>(args)...);
+            auto retVal = _functor(std::forward<Args>(args)...);
             if (!ReturnCheckPolicy::returnValueIsOk(retVal)) {
                 ErrorPolicy::handleError(retVal);
             }
