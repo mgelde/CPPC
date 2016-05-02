@@ -30,6 +30,8 @@
 #include "checkcall.h"
 
 using namespace cwrap::error;
+using namespace cwrap::testing::mock;
+using namespace cwrap::testing::assertions;
 
 TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
     bool called { false };
@@ -40,9 +42,27 @@ TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
     CallGuard<decltype(func),
         IsNotNegativeReturnCheckPolicy> guard { std::move(func) };
     ASSERT_FALSE(called);
-    int x = guard(8, true);
+    const auto x = guard(8, true);
     ASSERT_TRUE(called);
     ASSERT_EQ(x, 16);
+}
+
+TEST(CallGuardTest, functionPointerTest) {
+    MockAPI::instance().reset();
+    CallGuard<decltype(some_func_with_error_code),
+        IsNotNegativeReturnCheckPolicy>
+        guard { some_func_with_error_code };
+    const auto x = guard(17);
+    ASSERT_EQ(x, 17);
+    ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+}
+
+TEST(CallGuardTest, callCheckTest) {
+    MockAPI::instance().reset();
+    ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    const auto x = CALL_CHECKED<decltype(some_func_with_error_code)> (some_func_with_error_code, 0);
+    ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    ASSERT_EQ(x, 0);
 }
 
 TEST(CallGuardTest, testCallGuardDefaultConstructor) {

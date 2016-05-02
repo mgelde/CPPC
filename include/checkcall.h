@@ -83,6 +83,11 @@ struct IsNotNegativeReturnCheckPolicy {
 
 using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
 
+template <class Functor>
+using FunctorOrFuncRefType = std::conditional_t<std::is_function<Functor>::value,
+            std::add_lvalue_reference_t<Functor>,
+            Functor>;
+
 template <class Functor,
          class ReturnCheckPolicy=DefaultReturnCheckPolicy,
          class ErrorPolicy=DefaultErrorPolicy>
@@ -107,8 +112,15 @@ class CallGuard {
             return retVal;
         }
     private:
-        Functor _functor;
+        FunctorOrFuncRefType<Functor> _functor;
 };
+
+template <class Functor,
+         class ...Args>
+auto CALL_CHECKED(FunctorOrFuncRefType<Functor> func, Args&& ...args) {
+    static CallGuard<Functor> functor { std::move(func) };
+    return functor(std::forward<Args>(args)...);
+}
 
 } //::error
 

@@ -110,6 +110,14 @@ struct free_resources_operator : public __mock_call_operator {
     }
 };
 
+struct some_func_with_error_code_operator : public __mock_call_operator {
+    int operator() (int errorCode) {
+        _called = true;
+        _numCalled++;
+        return errorCode;
+    }
+};
+
 class MockAPI {
     public:
         const free_resources_operator &freeResourcesFunc() const {
@@ -120,9 +128,14 @@ class MockAPI {
             return _releaseFunc;
         }
 
+        const some_func_with_error_code_operator &someFuncWithErrorCode() const {
+            return _someFuncWithErrorCode;
+        }
+
         void reset() {
             _freeFunc = free_resources_operator {};
             _releaseFunc = release_resources_operator {};
+            _someFuncWithErrorCode = some_func_with_error_code_operator {};
         }
 
         void doFreeResources(some_type_t *ptr) {
@@ -133,6 +146,10 @@ class MockAPI {
             _releaseFunc(ptr);
         }
 
+        int doSomeFuncWithErrorCode(int errorCode) {
+            return _someFuncWithErrorCode(errorCode);
+        }
+
         static MockAPI &instance() {
             return *_instance;
         }
@@ -140,6 +157,7 @@ class MockAPI {
     private:
         free_resources_operator _freeFunc;
         release_resources_operator _releaseFunc;
+        some_func_with_error_code_operator _someFuncWithErrorCode;
 
         static std::unique_ptr<MockAPI> _instance;
 };
@@ -152,6 +170,10 @@ void free_resources(some_type_t *ptr) {
 
 void release_resources(some_type_t *ptr) {
     MockAPI::instance().doReleaseResources(ptr);
+}
+
+int some_func_with_error_code(int errorCode) {
+    return MockAPI::instance().doSomeFuncWithErrorCode(errorCode);
 }
 
 }
