@@ -29,8 +29,10 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall")
 add_library(CWrap INTERFACE)
 target_include_directories(CWrap INTERFACE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:include/cwrapinclude>
+      $<INSTALL_INTERFACE:include/cwrap>
 )
 
 enable_testing()
 add_subdirectory(tests)
+
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION /usr/include/cwrap)
