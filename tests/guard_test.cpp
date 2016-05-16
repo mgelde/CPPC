@@ -31,7 +31,7 @@ using namespace cwrap::guard;
 using namespace cwrap::testing::mock;
 using namespace cwrap::testing::assertions;
 
-template <class T, class S=ByValueStoragePolicy<some_type_t>>
+template <class T=DefaultFreePolicy<some_type_t>, class S=ByValueStoragePolicy<some_type_t>>
 using GuardT = Guard<some_type_t, T, S>;
 
 template <class T>
@@ -76,7 +76,7 @@ TEST_F(GuardFreeFuncTest, testPassingPointerToAllocatedMemory) {
         auto freeFunc = [](some_type_t &ptr) {
             release_resources(&ptr);
         };
-        GuardT<decltype(freeFunc)> guard { std::move(freeFunc) };
+        GuardT<> guard { std::move(freeFunc) };
         ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
         do_init_work(&guard.get());
         ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
@@ -86,10 +86,10 @@ TEST_F(GuardFreeFuncTest, testPassingPointerToAllocatedMemory) {
 
 TEST_F(GuardFreeFuncTest, testInitFunctionReturningPointer) {
     {
-        auto freeFunc = [](some_type_t *&ptr) {
+        auto freeFunc = [](some_type_t *ptr) {
             free_resources(ptr);
         };
-        auto guard = Guard<some_type_t*, decltype(freeFunc)> { freeFunc, create_and_initialize() };
+        auto guard = Guard<some_type_t*> { freeFunc, create_and_initialize() };
         ASSERT_FALSE(guard.get()->isFreed());
         ASSERT_NOT_CALLED(MockAPI::instance().freeResourcesFunc());
     }
@@ -163,6 +163,16 @@ TEST_F(GuardMemoryMngmtTest, testDeleterAsReference) {
     ASSERT_EQ(CustomDeleterT::numberOfConstructorCalls, 1);
 }
 
+TEST_F(GuardMemoryMngmtTest, testDeleterAsConstReference) {
+    ASSERT_EQ(CustomDeleterT::numberOfConstructorCalls, 0);
+    const CustomDeleterT deleter {};
+    ASSERT_EQ(CustomDeleterT::numberOfConstructorCalls, 1);
+    GuardT<const CustomDeleterT&> guard { deleter };
+    ASSERT_EQ(CustomDeleterT::numberOfConstructorCalls, 1);
+    GuardT<const CustomDeleterT&> anotherGuard { deleter, some_type_t {} };
+    ASSERT_EQ(CustomDeleterT::numberOfConstructorCalls, 1);
+}
+
 TEST_F(GuardMemoryMngmtTest, testMoveConstruction) {
     {
         GuardT<CustomDeleterT> guard{};
@@ -194,6 +204,7 @@ class TypeWithouDefaultConstructor {
 };
 
 using NonDefaultConstructibleGuard = GuardT< TypeWithouDefaultConstructor>;
+
 static_assert(!std::is_default_constructible<NonDefaultConstructibleGuard>::value,
         "If deleter has no default constructor, should not be default-construtible");
 

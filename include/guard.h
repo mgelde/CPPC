@@ -24,17 +24,12 @@
 #include <functional>
 #include <memory>
 #include <type_traits>
+#include <functional>
 #include <utility>
 
 namespace cwrap {
 
 namespace guard {
-
-template <class T>
-struct DefaultFreePolicy {
-    void operator() (std::remove_reference_t<T>&) const {
-    }
-};
 
 template <class T>
 struct ByValueStoragePolicy {
@@ -73,6 +68,22 @@ struct UniquePointerStoragePolicy {
     }
 };
 
+template <class T>
+struct _FreePolicyFunctionTypeHelper {
+
+    using Type = std::conditional_t<
+            std::is_pointer<T>::value,
+            void(T),
+            void(std::add_lvalue_reference_t<T>)
+                >;
+};
+
+template <class T>
+using _FreePolicyFunctionType = typename _FreePolicyFunctionTypeHelper<T>::Type;
+
+template <class T>
+using DefaultFreePolicy = std::function<_FreePolicyFunctionType<T>>;
+
 template <class Type,
          class FreePolicy=DefaultFreePolicy<Type>,
          class StoragePolicy=ByValueStoragePolicy<Type>>
@@ -92,17 +103,17 @@ class Guard {
             , _freeFunc { std::move(func) } {}
 
         //if the FreePolicy is a reference, we need to initialize a potential non-const ref from a non-const ref
-        Guard(typename std::conditional<
+        Guard(std::conditional_t<
                 std::is_reference<FreePolicy>::value,
                 FreePolicy,
-                const FreePolicy&>::type func)
+                const FreePolicy&> func)
             : _guarded { StoragePolicy::createFrom() }
             , _freeFunc { func } {}
 
-        Guard(typename std::conditional<
+        Guard(std::conditional_t<
                 std::is_reference<FreePolicy>::value,
                 FreePolicy,
-                const FreePolicy&>::type func,
+                const FreePolicy&> func,
                 Type t)
             : _guarded { StoragePolicy::createFrom(t) }
             , _freeFunc { func } {}
