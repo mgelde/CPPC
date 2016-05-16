@@ -52,11 +52,9 @@ include_directories(${GTEST_INCLUDE_DIRS})
 add_executable(guard_test guard_test.cpp)
 target_link_libraries(guard_test ${GTEST_BOTH_LIBRARIES})
 target_link_libraries(guard_test CWrap)
-
 add_test(GuardTests guard_test)
 
 add_executable(checkcall_tests checkcall_tests.cpp)
 target_link_libraries(checkcall_tests ${GTEST_BOTH_LIBRARIES})
 target_link_libraries(checkcall_tests CWrap)
-
 add_test(FuncWrapperTests checkcall_tests)

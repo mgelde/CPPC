@@ -26,7 +26,7 @@
 
 #include "gtest/gtest.h"
 
-#include "checkcall.h"
+#include "checkcall.hpp"
 #include "test_api.h"
 
 using namespace cwrap::error;

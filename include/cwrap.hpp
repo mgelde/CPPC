@@ -21,5 +21,5 @@
 
 #pragma once
 
-#include "checkcall.h"
-#include "guard.h"
+#include "checkcall.hpp"
+#include "guard.hpp"

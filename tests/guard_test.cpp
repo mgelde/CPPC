@@ -23,7 +23,7 @@
 
 #include "gtest/gtest.h"
 
-#include "cwrap.h"
+#include "cwrap.hpp"
 
 #include "test_api.h"
 
