@@ -21,8 +21,8 @@
 
 #pragma once
 
-#include <memory>
 #include <exception>
+#include <memory>
 
 #include "gtest/gtest.h"
 
@@ -33,35 +33,32 @@ namespace testing {
 namespace mock {
 
 class MockException : public std::exception {
-    public:
-        const char *what() const noexcept override {
-            return "The mock was instrumented incorrectly";
-        }
+public:
+    const char *what() const noexcept override {
+        return "The mock was instrumented incorrectly";
+    }
 };
 
 class some_type_t {
-    public:
+public:
+    bool isFreed() const { return freed && released; }
 
-        bool isFreed() const {
-            return freed && released;
-        }
+    void reset() {
+        freed = false;
+        released = false;
+    }
 
-        void reset() {
-            freed = false;
-            released = false;
-        }
+    friend struct release_resources_operator;
+    friend struct free_resources_operator;
+    friend struct do_init_work_operator;
+    friend struct create_and_initialize_operator;
 
-        friend struct release_resources_operator;
-        friend struct free_resources_operator;
-        friend struct do_init_work_operator;
-        friend struct create_and_initialize_operator;
-
-    private:
-        bool released = false;
-        bool freed = false;
+private:
+    bool released = false;
+    bool freed = false;
 };
 
-static some_type_t __some_type {};
+static some_type_t __some_type{};
 
 void do_init_work(some_type_t *ptr) {
     if (ptr) {
@@ -78,20 +75,17 @@ void release_resources(some_type_t *ptr);
 void free_resources(some_type_t *ptr);
 
 struct __mock_call_operator {
-    public:
-        bool called() const {
-            return _called;
-        }
-        unsigned int numCalls() const {
-            return _numCalled;
-        }
-    protected:
-        bool _called { false };
-        unsigned int _numCalled { 0 };
+public:
+    bool called() const { return _called; }
+    unsigned int numCalls() const { return _numCalled; }
+
+protected:
+    bool _called{false};
+    unsigned int _numCalled{0};
 };
 
 struct release_resources_operator : public __mock_call_operator {
-    void operator() (some_type_t *ptr) {
+    void operator()(some_type_t *ptr) {
         ptr->released = true;
         _called = true;
         _numCalled++;
@@ -99,9 +93,9 @@ struct release_resources_operator : public __mock_call_operator {
 };
 
 struct free_resources_operator : public __mock_call_operator {
-    void operator() (some_type_t *ptr) {
+    void operator()(some_type_t *ptr) {
         if (ptr != &__some_type) {
-            throw MockException {};
+            throw MockException{};
         }
         release_resources(ptr);
         ptr->freed = true;
@@ -111,7 +105,7 @@ struct free_resources_operator : public __mock_call_operator {
 };
 
 struct some_func_with_error_code_operator : public __mock_call_operator {
-    int operator() (int errorCode) {
+    int operator()(int errorCode) {
         _called = true;
         _numCalled++;
         return errorCode;
@@ -119,50 +113,44 @@ struct some_func_with_error_code_operator : public __mock_call_operator {
 };
 
 class MockAPI {
-    public:
-        const free_resources_operator &freeResourcesFunc() const {
-            return _freeFunc;
-        }
+public:
+    const free_resources_operator &freeResourcesFunc() const {
+        return _freeFunc;
+    }
 
-        const release_resources_operator &releaseResourcesFunc() const {
-            return _releaseFunc;
-        }
+    const release_resources_operator &releaseResourcesFunc() const {
+        return _releaseFunc;
+    }
 
-        const some_func_with_error_code_operator &someFuncWithErrorCode() const {
-            return _someFuncWithErrorCode;
-        }
+    const some_func_with_error_code_operator &someFuncWithErrorCode() const {
+        return _someFuncWithErrorCode;
+    }
 
-        void reset() {
-            _freeFunc = free_resources_operator {};
-            _releaseFunc = release_resources_operator {};
-            _someFuncWithErrorCode = some_func_with_error_code_operator {};
-        }
+    void reset() {
+        _freeFunc = free_resources_operator{};
+        _releaseFunc = release_resources_operator{};
+        _someFuncWithErrorCode = some_func_with_error_code_operator{};
+    }
 
-        void doFreeResources(some_type_t *ptr) {
-            _freeFunc(ptr);
-        }
+    void doFreeResources(some_type_t *ptr) { _freeFunc(ptr); }
 
-        void doReleaseResources(some_type_t *ptr) {
-            _releaseFunc(ptr);
-        }
+    void doReleaseResources(some_type_t *ptr) { _releaseFunc(ptr); }
 
-        int doSomeFuncWithErrorCode(int errorCode) {
-            return _someFuncWithErrorCode(errorCode);
-        }
+    int doSomeFuncWithErrorCode(int errorCode) {
+        return _someFuncWithErrorCode(errorCode);
+    }
 
-        static MockAPI &instance() {
-            return *_instance;
-        }
+    static MockAPI &instance() { return *_instance; }
 
-    private:
-        free_resources_operator _freeFunc;
-        release_resources_operator _releaseFunc;
-        some_func_with_error_code_operator _someFuncWithErrorCode;
+private:
+    free_resources_operator _freeFunc;
+    release_resources_operator _releaseFunc;
+    some_func_with_error_code_operator _someFuncWithErrorCode;
 
-        static std::unique_ptr<MockAPI> _instance;
+    static std::unique_ptr<MockAPI> _instance;
 };
 
-std::unique_ptr<MockAPI> MockAPI::_instance {std::make_unique<MockAPI>()};
+std::unique_ptr<MockAPI> MockAPI::_instance{std::make_unique<MockAPI>()};
 
 void free_resources(some_type_t *ptr) {
     MockAPI::instance().doFreeResources(ptr);
@@ -176,7 +164,7 @@ int some_func_with_error_code(int errorCode) {
     return MockAPI::instance().doSomeFuncWithErrorCode(errorCode);
 }
 
-}
+}  // namespace mock
 
 namespace assertions {
 
@@ -195,10 +183,8 @@ void ASSERT_NUM_CALLED(T &&t, unsigned int n) {
     ASSERT_EQ(t.numCalls(), n);
 }
 
-}
+}  // namespace assertions
 
-}
+}  // namespace testing
 
-
-
-}
+}  // namespace cwrap

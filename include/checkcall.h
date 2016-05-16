@@ -24,8 +24,8 @@
 #include <cerrno>
 #include <cstring>
 #include <functional>
-#include <stdexcept>
 #include <sstream>
+#include <stdexcept>
 #include <type_traits>
 #include <utility>
 
@@ -36,7 +36,7 @@ namespace error {
 struct ReportReturnValueErrorPolicy {
     template <class Rv>
     static inline void handleError(const Rv& rv) {
-        std::ostringstream stream { "Return value indicated error. Got: " };
+        std::ostringstream stream{"Return value indicated error. Got: "};
         stream << rv;
         throw std::runtime_error(stream.str());
     }
@@ -45,15 +45,13 @@ struct ReportReturnValueErrorPolicy {
 struct ErrnoErrorPolicy {
     template <class Rv>
     static inline void handleError(const Rv&) {
-        throw std::runtime_error(
-                std::strerror(errno));
+        throw std::runtime_error(std::strerror(errno));
     }
 };
 
 struct ErrorCodeErrorPolicy {
     static inline void handleError(int rv) {
-        throw std::runtime_error(
-                std::strerror(-rv));
+        throw std::runtime_error(std::strerror(-rv));
     }
 };
 
@@ -61,9 +59,9 @@ using DefaultErrorPolicy = ReportReturnValueErrorPolicy;
 
 struct IsZeroReturnCheckPolicy {
     template <class Rv>
-    static inline bool returnValueIsOk(const Rv &rv) {
+    static inline bool returnValueIsOk(const Rv& rv) {
         static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
-                "Must be an integral value");
+                      "Must be an integral value");
 
         return rv == 0;
     }
@@ -71,11 +69,11 @@ struct IsZeroReturnCheckPolicy {
 
 struct IsNotNegativeReturnCheckPolicy {
     template <class Rv>
-    static inline bool returnValueIsOk(const Rv &rv) {
+    static inline bool returnValueIsOk(const Rv& rv) {
         static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
-                "Must be an integral value");
+                      "Must be an integral value");
         static_assert(std::is_signed<std::remove_reference_t<Rv>>::value,
-                "Must be a signed type");
+                      "Must be a signed type");
 
         return rv >= 0;
     }
@@ -84,44 +82,43 @@ struct IsNotNegativeReturnCheckPolicy {
 using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
 
 template <class Functor>
-using FunctorOrFuncRefType = std::conditional_t<std::is_function<Functor>::value,
-            std::add_lvalue_reference_t<Functor>,
-            Functor>;
+using FunctorOrFuncRefType =
+        std::conditional_t<std::is_function<Functor>::value,
+                           std::add_lvalue_reference_t<Functor>,
+                           Functor>;
 
 template <class Functor,
-         class ReturnCheckPolicy=DefaultReturnCheckPolicy,
-         class ErrorPolicy=DefaultErrorPolicy>
+          class ReturnCheckPolicy = DefaultReturnCheckPolicy,
+          class ErrorPolicy = DefaultErrorPolicy>
 class CallGuard {
-    public:
-        template <class T>
-        CallGuard(T &&t)
-            : _functor { std::forward<T>(t) } {}
+public:
+    template <class T>
+    CallGuard(T&& t) : _functor{std::forward<T>(t)} {}
 
-        template <class T=Functor,
-                 typename = std::enable_if_t<
-                     std::is_default_constructible<T>::value>>
-        CallGuard()
-            : _functor {} {}
+    template <class T = Functor,
+              typename =
+                      std::enable_if_t<std::is_default_constructible<T>::value>>
+    CallGuard() : _functor{} {}
 
-        template <class ...Args>
-        auto operator() (Args&& ...args) {
-            auto retVal = _functor(std::forward<Args>(args)...);
-            if (!ReturnCheckPolicy::returnValueIsOk(retVal)) {
-                ErrorPolicy::handleError(retVal);
-            }
-            return retVal;
+    template <class... Args>
+    auto operator()(Args&&... args) {
+        auto retVal = _functor(std::forward<Args>(args)...);
+        if (!ReturnCheckPolicy::returnValueIsOk(retVal)) {
+            ErrorPolicy::handleError(retVal);
         }
-    private:
-        FunctorOrFuncRefType<Functor> _functor;
+        return retVal;
+    }
+
+private:
+    FunctorOrFuncRefType<Functor> _functor;
 };
 
-template <class Functor,
-         class ...Args>
-auto CALL_CHECKED(FunctorOrFuncRefType<Functor> func, Args&& ...args) {
-    static CallGuard<Functor> functor { std::move(func) };
+template <class Functor, class... Args>
+auto CALL_CHECKED(FunctorOrFuncRefType<Functor> func, Args&&... args) {
+    static CallGuard<Functor> functor{std::move(func)};
     return functor(std::forward<Args>(args)...);
 }
 
-} //::error
+}  // namepsace error
 
-} //::cwrap
+}  // namespace cwrap
