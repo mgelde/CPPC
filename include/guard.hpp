@@ -72,14 +72,9 @@ struct UniquePointerStoragePolicy {
 };
 
 template <class T>
-struct _FreePolicyFunctionTypeHelper {
-    using Type = std::conditional_t<std::is_pointer<T>::value,
+using _FreePolicyFunctionType = std::conditional_t<std::is_pointer<T>::value,
                                     void(T),
                                     void(std::add_lvalue_reference_t<T>)>;
-};
-
-template <class T>
-using _FreePolicyFunctionType = typename _FreePolicyFunctionTypeHelper<T>::Type;
 
 template <class T>
 using DefaultFreePolicy = std::function<_FreePolicyFunctionType<T>>;
