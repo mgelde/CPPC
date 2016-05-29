@@ -72,18 +72,25 @@ struct UniquePointerStoragePolicy {
 };
 
 template <class T>
-using _FreePolicyFunctionType = std::conditional_t<std::is_pointer<T>::value,
-                                    void(T),
-                                    void(std::add_lvalue_reference_t<T>)>;
+using _PointerOrRefType = std::conditional_t<std::is_pointer<T>::value,
+                                             T,
+                                             std::add_lvalue_reference_t<T>>;
+
+template <class T>
+using _FreePolicyFunctionType = void(_PointerOrRefType<T>);
 
 template <class T>
 using DefaultFreePolicy = std::function<_FreePolicyFunctionType<T>>;
 
-template <class Type,
+template <class Type,  // what if: Type is const, Type is volatile, type is
+                       // pointer to const?
           class FreePolicy = DefaultFreePolicy<Type>,
           class StoragePolicy = ByValueStoragePolicy<Type>>
 class Guard {
     static_assert(!std::is_reference<Type>::value, "Cannot guard references");
+
+private:
+    using _RawType = std::decay_t<Type>;
 
 public:
     template <class F = FreePolicy,
@@ -105,17 +112,18 @@ public:
     Guard(std::conditional_t<std::is_reference<FreePolicy>::value,
                              FreePolicy,
                              const FreePolicy &> func,
-          Type t)
+          const _RawType &t)
             : _guarded{StoragePolicy::createFrom(t)}, _freeFunc{func} {}
 
-    Guard(std::remove_reference_t<FreePolicy> &&func, Type t)
+    Guard(std::remove_reference_t<FreePolicy> &&func, const _RawType &t)
             : _guarded{StoragePolicy::createFrom(t)}
             , _freeFunc{std::move(func)} {}
 
     template <class F = FreePolicy,
               typename =
                       std::enable_if_t<std::is_default_constructible<F>::value>>
-    Guard(Type t) : _guarded{StoragePolicy::createFrom(t)}, _freeFunc{} {}
+    Guard(const _RawType &t)
+            : _guarded{StoragePolicy::createFrom(t)}, _freeFunc{} {}
 
     Guard(const Guard &) = delete;
 
