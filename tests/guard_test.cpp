@@ -49,7 +49,7 @@ struct CustomDeleter {
 
     CustomDeleter &operator=(CustomDeleter &&) = default;
 
-    void operator()(T &t) const { release_resources(&t); }
+    void operator()(T &t) const noexcept { release_resources(&t); }
 };
 
 template <class T>
@@ -105,6 +105,23 @@ TEST_F(GuardFreeFuncTest, testWithUniquePointer) {
     ASSERT_CALLED(MockAPI::instance().releaseResourcesFunc());
 }
 
+/**
+ * DefaultFreePolicy is essentially a std;:function<void(T&)> (with some
+ * different type in case of pointers). This type is default-constructible, but
+ * is empty if so constructed. If invoked when empty, it throws a
+ * std::bad_function_call. This is consistent with what we want from a guard
+ * that does not know how to free its guarded resource. It should not silently
+ * leak resources. Instead, it should crash the program. If the client want
+ * this behavior (although I wouldn't know why), a custom FreePolicy is easily
+ * implemented.  This test documents that behavior.
+ */
+TEST_F(GuardFreeFuncTest, testThatDefaulFreePolicyThrowsIfEmpty) {
+    // a guard with the CustomFreePolicy and without a function to release resources
+    GuardT<> *guard = new GuardT<>();
+
+    ASSERT_THROW(delete guard, std::bad_function_call);
+}
+
 class GuardMemoryMngmtTest : public ::testing::Test {
 public:
     void SetUp() override {
@@ -119,20 +136,20 @@ public:
  */
 TEST_F(GuardMemoryMngmtTest, testGuardedValueIsPassedByReferece) {
     ASSERT_EQ(some_type_t::getNumberOfConstructorCalls(), 0);
-    some_type_t someObject {};
+    some_type_t someObject{};
     ASSERT_EQ(some_type_t::getNumberOfConstructorCalls(), 1);
-    GuardT<CustomDeleterT> guard { someObject };
-    //now we expect an additional call for the copy-construction of the
+    GuardT<CustomDeleterT> guard{someObject};
+    // now we expect an additional call for the copy-construction of the
     // value stored inside the Guard
     ASSERT_EQ(some_type_t::getNumberOfConstructorCalls(), 2);
 
-    //let's make sure the same overhead is incurred by the other overloads...
-    CustomDeleterT freeFunc {};
+    // let's make sure the same overhead is incurred by the other overloads...
+    CustomDeleterT freeFunc{};
     //...with copy-constructing the deleter
-    GuardT<CustomDeleterT> anotherGuard { freeFunc, someObject };
+    GuardT<CustomDeleterT> anotherGuard{freeFunc, someObject};
     ASSERT_EQ(some_type_t::getNumberOfConstructorCalls(), 3);
     //...with move-constructing the deleter
-    GuardT<CustomDeleterT> yetAnotherGuard { std::move(freeFunc), someObject };
+    GuardT<CustomDeleterT> yetAnotherGuard{std::move(freeFunc), someObject};
     ASSERT_EQ(some_type_t::getNumberOfConstructorCalls(), 4);
 }
 
@@ -238,4 +255,10 @@ static_assert(!std::is_copy_assignable<GuardT<CustomDeleterT>>::value,
 
 static_assert(!std::is_copy_constructible<GuardT<CustomDeleterT>>::value,
               "Copy construction should be disabled");
+
+static_assert(noexcept(std::declval<GuardT<CustomDeleterT>>().~Guard()),
+              "Guard with CustomDeleter should have noexcept destructor.");
+
+static_assert(!noexcept(std::declval<GuardT<>>().~Guard()),
+              "Guard with DefaultFreePolicy should not have noexcept destructor.");
 

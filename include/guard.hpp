@@ -31,23 +31,44 @@ namespace cwrap {
 
 namespace guard {
 
+template <class FreePolicy>//what if this is a function pointer type?
+struct can_be_noexcept {
+private:
+    template <class F>
+    struct _helper : public std::false_type {};
+
+    template <class T, class F, class ...Args>
+    struct _helper<T(F::*)(Args...)> {
+        static constexpr bool value { noexcept(std::declval<FreePolicy>()(std::declval<Args>()...)) };
+    };
+    //for some reason the specialization does not SFINAE here with noexpr, but it does with const
+    template <class T, class F, class ...Args>
+    struct _helper<T(F::*)(Args...) const> {
+        static constexpr bool value { noexcept(std::declval<FreePolicy>()(std::declval<Args>()...)) };
+    };
+
+public:
+    constexpr static bool value{ _helper<decltype(&std::decay_t<FreePolicy>::operator())>::value };
+};
+
 template <class T>
 struct ByValueStoragePolicy {
     using StorageType = std::remove_reference_t<T>;
 
     inline static std::add_lvalue_reference_t<const StorageType> getFrom(
-            const StorageType &t) {
+            const StorageType &t) noexcept {
         return t;
     }
 
     inline static std::add_lvalue_reference_t<StorageType> getFrom(
-            StorageType &t) {
+            StorageType &t) noexcept {
         return t;
     }
 
     template <class... Args>
-    inline static StorageType createFrom(Args &&... args) {
-        return std::remove_reference_t<T>(std::forward<Args>(args)...);
+    inline static StorageType createFrom(Args &&... args)
+            noexcept(noexcept(StorageType {std::forward<Args>(args)...})) {
+        return StorageType{std::forward<Args>(args)...};
     }
 };
 
@@ -57,11 +78,12 @@ struct UniquePointerStoragePolicy {
     using StorageType = std::unique_ptr<std::remove_reference_t<T>>;
 
     inline static std::add_lvalue_reference_t<const RawType> getFrom(
-            const StorageType &t) {
+            const StorageType &t) noexcept{
         return *t;
     }
 
-    inline static std::add_lvalue_reference_t<RawType> getFrom(StorageType &t) {
+    inline static std::add_lvalue_reference_t<RawType> getFrom(
+            StorageType &t) noexcept{
         return *t;
     }
 
@@ -144,7 +166,19 @@ public:
         return *this;
     }
 
-    ~Guard() { _releaseIfNecessary(); }
+    /**@brief Release the resource held by this guard
+     *
+     * This function is noexcept if and only if all of the following hold:
+     * - The underlying free policy has an operator that is marked noexcept.
+     * - The StoragePolicy has implemented a getFrom method that is noexcept.
+     *
+     * Note that C functions never emit exceptions. It is therefore safe to
+     * declare the operator() of the FreePolicy noexcept if it only uses C
+     * functions.
+     */
+    ~Guard() noexcept(can_be_noexcept<FreePolicy>::value) {
+        _releaseIfNecessary();
+    }
 
     const Type &get() const { return StoragePolicy::getFrom(_guarded); }
 
@@ -152,14 +186,18 @@ public:
 
 private:
     typename StoragePolicy::StorageType _guarded;
-    FreePolicy _freeFunc;
     bool _released{false};
+    FreePolicy _freeFunc;
+    inline void _releaseIfNecessary() noexcept(can_be_noexcept<FreePolicy>::value);
 
-    inline void _releaseIfNecessary() {
-        if (!_released) {
-            _freeFunc(StoragePolicy::getFrom(_guarded));
-        }
-    }
 };
+
+template <class Type, class FreePolicy, class StoragePolicy>
+inline void Guard<Type, FreePolicy, StoragePolicy>::_releaseIfNecessary() noexcept(can_be_noexcept<FreePolicy>::value) {
+    if (!_released) {
+        _freeFunc(StoragePolicy::getFrom(_guarded));
+    }
+}
+
 }
 }
