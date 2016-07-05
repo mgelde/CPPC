@@ -29,10 +29,10 @@
 
 using namespace cwrap::guard;
 using namespace cwrap::testing::mock;
+using namespace cwrap::testing::mock::api;
 using namespace cwrap::testing::assertions;
 
-template <class T = DefaultFreePolicy<some_type_t>,
-          class S = ByValueStoragePolicy<some_type_t>>
+template <class T = DefaultFreePolicy<some_type_t>, class S = ByValueStoragePolicy<some_type_t>>
 using GuardT = Guard<some_type_t, T, S>;
 
 template <class T>
@@ -45,9 +45,7 @@ struct CustomDeleter {
 
     CustomDeleter(CustomDeleter &&) = default;
 
-    CustomDeleter &operator=(const CustomDeleter &&) {
-        numberOfConstructorCalls++;
-    }
+    CustomDeleter &operator=(const CustomDeleter &&) { numberOfConstructorCalls++; }
 
     CustomDeleter &operator=(CustomDeleter &&) = default;
 
@@ -79,7 +77,6 @@ TEST_F(GuardFreeFuncTest, testInitFunctionReturningPointer) {
     {
         auto freeFunc = [](some_type_t *ptr) { free_resources(ptr); };
         auto guard = Guard<some_type_t *>{freeFunc, create_and_initialize()};
-        ASSERT_FALSE(guard.get()->isFreed());
         ASSERT_NOT_CALLED(MockAPI::instance().freeResourcesFunc());
     }
     ASSERT_CALLED(MockAPI::instance().freeResourcesFunc());
@@ -101,11 +98,9 @@ TEST_F(GuardFreeFuncTest, testWithUniquePointer) {
         ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
         do_init_work(&guard.get());
         ASSERT_NOT_CALLED(MockAPI::instance().releaseResourcesFunc());
-        static_assert(
-                std::is_const<std::remove_reference_t<decltype(
-                        const_cast<const decltype(guard) &>(guard).get())>>::
-                        value,
-                "Should return a const ref");
+        static_assert(std::is_const<std::remove_reference_t<decltype(
+                              const_cast<const decltype(guard) &>(guard).get())>>::value,
+                      "Should return a const ref");
     }
     ASSERT_CALLED(MockAPI::instance().releaseResourcesFunc());
 }
@@ -193,10 +188,9 @@ class TypeWithouDefaultConstructor {
 
 using NonDefaultConstructibleGuard = GuardT<TypeWithouDefaultConstructor>;
 
-static_assert(
-        !std::is_default_constructible<NonDefaultConstructibleGuard>::value,
-        "If deleter has no default constructor, should not be "
-        "default-construtible");
+static_assert(!std::is_default_constructible<NonDefaultConstructibleGuard>::value,
+              "If deleter has no default constructor, should not be "
+              "default-construtible");
 
 static_assert(!std::is_default_constructible<GuardT<CustomDeleterT &>>::value,
               "If deleter is ref-type, should not be default-construtible");
@@ -204,17 +198,17 @@ static_assert(!std::is_default_constructible<GuardT<CustomDeleterT &>>::value,
 static_assert(std::is_default_constructible<Guard<some_type_t>>::value,
               "Default deleter is default constructible");
 
-static_assert(std::is_const<std::remove_reference_t<
-                      decltype(std::declval<const Guard<int>>().get())>>::value,
-              "Policy respects const correctness.");
+static_assert(
+        std::is_const<
+                std::remove_reference_t<decltype(std::declval<const Guard<int>>().get())>>::value,
+        "Policy respects const correctness.");
 
 auto __deleterLambdaPrototype = [](some_type_t &) {
 };  // lambdas cannot be declared in unevaluated contexts
 
-static_assert(
-        std::is_constructible<GuardT<std::function<void(some_type_t &)>>,
-                              decltype(__deleterLambdaPrototype)>::value,
-        "Constructor taking deleter policy should obey natural conversions");
+static_assert(std::is_constructible<GuardT<std::function<void(some_type_t &)>>,
+                                    decltype(__deleterLambdaPrototype)>::value,
+              "Constructor taking deleter policy should obey natural conversions");
 
 static_assert(!std::is_copy_assignable<GuardT<CustomDeleterT>>::value,
               "Copy assignment should be disabled");

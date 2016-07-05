@@ -31,6 +31,7 @@
 
 using namespace cwrap::error;
 using namespace cwrap::testing::mock;
+using namespace cwrap::testing::mock::api;
 using namespace cwrap::testing::assertions;
 
 TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
@@ -39,8 +40,7 @@ TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
         called = true;
         return y ? 2 * x : x;
     };
-    CallGuard<decltype(func), IsNotNegativeReturnCheckPolicy> guard{
-            std::move(func)};
+    CallGuard<decltype(func), IsNotNegativeReturnCheckPolicy> guard{std::move(func)};
     ASSERT_FALSE(called);
     const auto x = guard(8, true);
     ASSERT_TRUE(called);
@@ -49,9 +49,8 @@ TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
 
 TEST(CallGuardTest, functionPointerTest) {
     MockAPI::instance().reset();
-    CallGuard<decltype(some_func_with_error_code),
-              IsNotNegativeReturnCheckPolicy>
-            guard{some_func_with_error_code};
+    CallGuard<decltype(some_func_with_error_code), IsNotNegativeReturnCheckPolicy> guard{
+            some_func_with_error_code};
     const auto x = guard(17);
     ASSERT_EQ(x, 17);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
@@ -60,8 +59,7 @@ TEST(CallGuardTest, functionPointerTest) {
 TEST(CallGuardTest, callCheckTest) {
     MockAPI::instance().reset();
     ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
-    const auto x = CALL_CHECKED<decltype(some_func_with_error_code)>(
-            some_func_with_error_code, 0);
+    const auto x = CALL_CHECKED<decltype(some_func_with_error_code)>(some_func_with_error_code, 0);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
     ASSERT_EQ(x, 0);
 }
@@ -92,8 +90,7 @@ TEST(CallGuardTest, testIsZeroReturnCheckPolicy) {
 
 TEST(CallGuardTest, testIsNotNegativeCheckPolicy) {
     auto lambda = [](int x) { return x; };
-    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy> guard{
-            std::move(lambda)};
+    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy> guard{std::move(lambda)};
     ASSERT_NO_THROW(guard(1));
     ASSERT_NO_THROW(guard(0));
     ASSERT_THROW(guard(-1), std::runtime_error);
@@ -101,8 +98,7 @@ TEST(CallGuardTest, testIsNotNegativeCheckPolicy) {
 
 TEST(CallGuardTest, defaultErrorPolicyTest) {
     auto lambda = [](int x) { return x; };
-    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy> guard{
-            std::move(lambda)};
+    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy> guard{std::move(lambda)};
     try {
         guard(-1337);
     } catch (const std::runtime_error &e) {
@@ -114,10 +110,8 @@ TEST(CallGuardTest, defaultErrorPolicyTest) {
 
 TEST(CallGuardTest, testErrnoErrorPolicy) {
     auto lambda = [](int x) { return x; };
-    CallGuard<decltype(lambda),
-              IsNotNegativeReturnCheckPolicy,
-              ErrnoErrorPolicy>
-            guard{std::move(lambda)};
+    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy, ErrnoErrorPolicy> guard{
+            std::move(lambda)};
     errno = EINVAL;
     try {
         guard(-1337);
@@ -130,10 +124,8 @@ TEST(CallGuardTest, testErrnoErrorPolicy) {
 
 TEST(CallGuardTest, testErrorCodeErrorPolicy) {
     auto lambda = [](int x) { return x; };
-    CallGuard<decltype(lambda),
-              IsNotNegativeReturnCheckPolicy,
-              ErrorCodeErrorPolicy>
-            guard{std::move(lambda)};
+    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy, ErrorCodeErrorPolicy> guard{
+            std::move(lambda)};
     try {
         guard(-EINVAL);
     } catch (const std::runtime_error &e) {

@@ -32,50 +32,79 @@ namespace testing {
 
 namespace mock {
 
+/** @brief Thrown when the mocks are used incorrectly
+ *
+ * This exception is thrown by the mock API below to indicate that the mock was
+ * used incorrectly.
+ */
 class MockException : public std::exception {
 public:
-    const char *what() const noexcept override {
-        return "The mock was instrumented incorrectly";
-    }
+    const char *what() const noexcept override { return "The mock was instrumented incorrectly"; }
 };
 
+namespace api {
+
+/** @brief a demo type to use in unit tests.
+ *
+ * This class serves as a sample type in the mock API we define below.  It
+ * records the number the object is constructed or copied so we can assert that
+ * the number of copies is what we expect it to be.
+ */
 class some_type_t {
 public:
-    bool isFreed() const { return freed && released; }
+    some_type_t() { _numberOfConstructorCalls++; }
 
-    void reset() {
-        freed = false;
-        released = false;
+    some_type_t(const some_type_t &) { _numberOfConstructorCalls++; }
+
+    some_type_t(some_type_t &&) = default;
+
+    some_type_t &operator=(const some_type_t &) {
+        _numberOfConstructorCalls++;
+        return *this;
     }
 
-    friend struct release_resources_operator;
-    friend struct free_resources_operator;
-    friend struct do_init_work_operator;
-    friend struct create_and_initialize_operator;
+    some_type_t &operator=(some_type_t &&) = default;
+
+    static void reset() { _numberOfConstructorCalls = 0; }
 
 private:
-    bool released = false;
-    bool freed = false;
+    static unsigned int _numberOfConstructorCalls;
 };
 
-static some_type_t __some_type{};
+/**
+ * This method mimics "initialization" of memory that the
+ * client of an API allocates (in any way, stack, heap, static).
+ */
+void do_init_work(some_type_t *);
 
-void do_init_work(some_type_t *ptr) {
-    if (ptr) {
-        ptr->reset();
-    }
-}
-
-some_type_t *create_and_initialize() {
-    do_init_work(&__some_type);
-    return &__some_type;
-}
-
+/**
+ * If the client allocates memory and hands it to the API for initialization,
+ * it is usually the client's responsibility to free the memory. But first, the
+ * client usually has to give the library the chance to free any resources it
+ * has allocated on behalf of the client. This is our mock version of such a
+ * function.
+ */
 void release_resources(some_type_t *ptr);
-void free_resources(some_type_t *ptr);
 
-struct __mock_call_operator {
-public:
+/**
+ * This method is used to mimic an API that allocates memory and returns a
+ * pointer. That pointer must usually be "freed" by passing it to a custom
+ * "free function" (which we define below as 'free_resources'.
+ */
+some_type_t *create_and_initialize();
+
+/**
+ * If a library allocates memory on behalf of the client then it usually
+ * provides a "free function" that will deallocate the memory and free any
+ * other resources that are associated with the structure.
+ *
+ */
+void free_resources(some_type_t *ptr); int some_func_with_error_code(int
+        errorCode);
+
+} //namespace api
+
+struct MockCallOperator {
     bool called() const { return _called; }
     unsigned int numCalls() const { return _numCalled; }
 
@@ -84,85 +113,41 @@ protected:
     unsigned int _numCalled{0};
 };
 
-struct release_resources_operator : public __mock_call_operator {
-    void operator()(some_type_t *ptr) {
-        ptr->released = true;
-        _called = true;
-        _numCalled++;
-    }
+struct ReleaseResourcesOperator : public MockCallOperator {
+    void operator()(api::some_type_t *);
 };
 
-struct free_resources_operator : public __mock_call_operator {
-    void operator()(some_type_t *ptr) {
-        if (ptr != &__some_type) {
-            throw MockException{};
-        }
-        release_resources(ptr);
-        ptr->freed = true;
-        _called = true;
-        _numCalled++;
-    }
+struct FreeResourcesOperator : public MockCallOperator {
+    void operator()(api::some_type_t *ptr);
 };
 
-struct some_func_with_error_code_operator : public __mock_call_operator {
-    int operator()(int errorCode) {
-        _called = true;
-        _numCalled++;
-        return errorCode;
-    }
+struct SomeFuncWithErrorCodeOperator : public MockCallOperator {
+    int operator()(int errorCode);
 };
 
 class MockAPI {
 public:
-    const free_resources_operator &freeResourcesFunc() const {
-        return _freeFunc;
-    }
+    const FreeResourcesOperator &freeResourcesFunc() const;
 
-    const release_resources_operator &releaseResourcesFunc() const {
-        return _releaseFunc;
-    }
+    const ReleaseResourcesOperator &releaseResourcesFunc() const;
 
-    const some_func_with_error_code_operator &someFuncWithErrorCode() const {
-        return _someFuncWithErrorCode;
-    }
+    const SomeFuncWithErrorCodeOperator &someFuncWithErrorCode() const;
 
-    void reset() {
-        _freeFunc = free_resources_operator{};
-        _releaseFunc = release_resources_operator{};
-        _someFuncWithErrorCode = some_func_with_error_code_operator{};
-    }
+    void reset();
 
-    void doFreeResources(some_type_t *ptr) { _freeFunc(ptr); }
+    void doFreeResources(api::some_type_t *ptr);
 
-    void doReleaseResources(some_type_t *ptr) { _releaseFunc(ptr); }
+    void doReleaseResources(api::some_type_t *ptr);
 
-    int doSomeFuncWithErrorCode(int errorCode) {
-        return _someFuncWithErrorCode(errorCode);
-    }
+    int doSomeFuncWithErrorCode(int errorCode);
 
-    static MockAPI &instance() { return *_instance; }
+    static MockAPI &instance();
 
 private:
-    free_resources_operator _freeFunc;
-    release_resources_operator _releaseFunc;
-    some_func_with_error_code_operator _someFuncWithErrorCode;
-
-    static std::unique_ptr<MockAPI> _instance;
+    FreeResourcesOperator _freeFunc;
+    ReleaseResourcesOperator _releaseFunc;
+    SomeFuncWithErrorCodeOperator _someFuncWithErrorCode;
 };
-
-std::unique_ptr<MockAPI> MockAPI::_instance{std::make_unique<MockAPI>()};
-
-void free_resources(some_type_t *ptr) {
-    MockAPI::instance().doFreeResources(ptr);
-}
-
-void release_resources(some_type_t *ptr) {
-    MockAPI::instance().doReleaseResources(ptr);
-}
-
-int some_func_with_error_code(int errorCode) {
-    return MockAPI::instance().doSomeFuncWithErrorCode(errorCode);
-}
 
 }  // namespace mock
 
