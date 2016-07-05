@@ -91,6 +91,7 @@ void MockAPI::reset() {
     _freeFunc = FreeResourcesOperator{};
     _releaseFunc = ReleaseResourcesOperator{};
     _someFuncWithErrorCode = SomeFuncWithErrorCodeOperator{};
+    api::some_type_t::reset();
 }
 
 void MockAPI::doFreeResources(api::some_type_t *ptr) { _freeFunc(ptr); }

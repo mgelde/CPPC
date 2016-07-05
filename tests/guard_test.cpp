@@ -113,6 +113,29 @@ public:
     }
 };
 
+/**
+ * Make sure that we do not copy the object that is to be guarded in
+ * needlessly.
+ */
+TEST_F(GuardMemoryMngmtTest, testGuardedValueIsPassedByReferece) {
+    ASSERT_EQ(some_type_t::getNumberOfConstructorCalls(), 0);
+    some_type_t someObject {};
+    ASSERT_EQ(some_type_t::getNumberOfConstructorCalls(), 1);
+    GuardT<CustomDeleterT> guard { someObject };
+    //now we expect an additional call for the copy-construction of the
+    // value stored inside the Guard
+    ASSERT_EQ(some_type_t::getNumberOfConstructorCalls(), 2);
+
+    //let's make sure the same overhead is incurred by the other overloads...
+    CustomDeleterT freeFunc {};
+    //...with copy-constructing the deleter
+    GuardT<CustomDeleterT> anotherGuard { freeFunc, someObject };
+    ASSERT_EQ(some_type_t::getNumberOfConstructorCalls(), 3);
+    //...with move-constructing the deleter
+    GuardT<CustomDeleterT> yetAnotherGuard { std::move(freeFunc), someObject };
+    ASSERT_EQ(some_type_t::getNumberOfConstructorCalls(), 4);
+}
+
 // test that the overload taking only a deleter forwards correctly
 TEST_F(GuardMemoryMngmtTest, testPerfectForwarding) {
     CustomDeleterT deleter{};

@@ -67,6 +67,8 @@ public:
 
     static void reset() { _numberOfConstructorCalls = 0; }
 
+    static unsigned int getNumberOfConstructorCalls() { return _numberOfConstructorCalls; }
+
 private:
     static unsigned int _numberOfConstructorCalls;
 };
@@ -99,10 +101,10 @@ some_type_t *create_and_initialize();
  * other resources that are associated with the structure.
  *
  */
-void free_resources(some_type_t *ptr); int some_func_with_error_code(int
-        errorCode);
+void free_resources(some_type_t *ptr);
+int some_func_with_error_code(int errorCode);
 
-} //namespace api
+}  // namespace api
 
 struct MockCallOperator {
     bool called() const { return _called; }

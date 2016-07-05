@@ -112,7 +112,7 @@ public:
     Guard(std::conditional_t<std::is_reference<FreePolicy>::value,
                              FreePolicy,
                              const FreePolicy &> func,
-          const _RawType &t)
+                             const _RawType &t)
             : _guarded{StoragePolicy::createFrom(t)}, _freeFunc{func} {}
 
     Guard(std::remove_reference_t<FreePolicy> &&func, const _RawType &t)
