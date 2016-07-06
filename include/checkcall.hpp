@@ -50,9 +50,7 @@ struct ErrnoErrorPolicy {
 };
 
 struct ErrorCodeErrorPolicy {
-    static inline void handleError(int rv) {
-        throw std::runtime_error(std::strerror(-rv));
-    }
+    static inline void handleError(int rv) { throw std::runtime_error(std::strerror(-rv)); }
 };
 
 using DefaultErrorPolicy = ReportReturnValueErrorPolicy;
@@ -72,8 +70,7 @@ struct IsNotNegativeReturnCheckPolicy {
     static inline bool returnValueIsOk(const Rv& rv) {
         static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
                       "Must be an integral value");
-        static_assert(std::is_signed<std::remove_reference_t<Rv>>::value,
-                      "Must be a signed type");
+        static_assert(std::is_signed<std::remove_reference_t<Rv>>::value, "Must be a signed type");
 
         return rv >= 0;
     }
@@ -82,10 +79,9 @@ struct IsNotNegativeReturnCheckPolicy {
 using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
 
 template <class Functor>
-using FunctorOrFuncRefType =
-        std::conditional_t<std::is_function<Functor>::value,
-                           std::add_lvalue_reference_t<Functor>,
-                           Functor>;
+using FunctorOrFuncRefType = std::conditional_t<std::is_function<Functor>::value,
+                                                std::add_lvalue_reference_t<Functor>,
+                                                Functor>;
 
 template <class Functor,
           class ReturnCheckPolicy = DefaultReturnCheckPolicy,
@@ -96,8 +92,7 @@ public:
     CallGuard(T&& t) : _functor{std::forward<T>(t)} {}
 
     template <class T = Functor,
-              typename =
-                      std::enable_if_t<std::is_default_constructible<T>::value>>
+              typename = std::enable_if_t<std::is_default_constructible<T>::value>>
     CallGuard() : _functor{} {}
 
     template <class... Args>
