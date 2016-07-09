@@ -27,10 +27,10 @@
 
 #include "test_api.h"
 
-using namespace cwrap::guard;
-using namespace cwrap::testing::mock;
-using namespace cwrap::testing::mock::api;
-using namespace cwrap::testing::assertions;
+using namespace ::cwrap::guard;
+using namespace ::cwrap::testing::mock;
+using namespace ::cwrap::testing::mock::api;
+using namespace ::cwrap::testing::assertions;
 
 template <class T = DefaultFreePolicy<some_type_t>, class S = ByValueStoragePolicy<some_type_t>>
 using GuardT = Guard<some_type_t, T, S>;
@@ -61,6 +61,13 @@ class GuardFreeFuncTest : public ::testing::Test {
 public:
     void SetUp() override { MockAPI::instance().reset(); }
 };
+
+TEST_F(GuardFreeFuncTest, testFunctionPointerAsFreeFunc) {
+    auto guard = new Guard<some_type_t*, void(*)(some_type_t*)> {&free_resources, create_and_initialize()};
+    ASSERT_NOT_CALLED(MockAPI::instance().freeResourcesFunc());
+    delete guard;
+    ASSERT_CALLED(MockAPI::instance().freeResourcesFunc());
+}
 
 TEST_F(GuardFreeFuncTest, testPassingPointerToAllocatedMemory) {
     {
@@ -106,7 +113,7 @@ TEST_F(GuardFreeFuncTest, testWithUniquePointer) {
 }
 
 /**
- * DefaultFreePolicy is essentially a std;:function<void(T&)> (with some
+ * DefaultFreePolicy is essentially a std::function<void(T&)> (with some
  * different type in case of pointers). This type is default-constructible, but
  * is empty if so constructed. If invoked when empty, it throws a
  * std::bad_function_call. This is consistent with what we want from a guard
@@ -119,6 +126,7 @@ TEST_F(GuardFreeFuncTest, testThatDefaulFreePolicyThrowsIfEmpty) {
     // a guard with the CustomFreePolicy and without a function to release resources
     GuardT<> *guard = new GuardT<>();
 
+    //make sure the destructor is called by deleting the guard
     ASSERT_THROW(delete guard, std::bad_function_call);
 }
 
@@ -223,7 +231,7 @@ TEST_F(GuardMemoryMngmtTest, testMoveAssignment) {
  */
 
 class TypeWithouDefaultConstructor {
-    TypeWithouDefaultConstructor(int) {}
+    TypeWithouDefaultConstructor() = delete;
 };
 
 using NonDefaultConstructibleGuard = GuardT<TypeWithouDefaultConstructor>;
@@ -261,4 +269,7 @@ static_assert(noexcept(std::declval<GuardT<CustomDeleterT>>().~Guard()),
 
 static_assert(!noexcept(std::declval<GuardT<>>().~Guard()),
               "Guard with DefaultFreePolicy should not have noexcept destructor.");
+
+static_assert(!noexcept(std::declval<GuardT<void (*)(some_type_t*)>>().~Guard()),
+            "Guard with function-pointer free policy should not have noexcept destructor");
 
