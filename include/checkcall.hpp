@@ -87,6 +87,13 @@ struct IsNotZeroReturnCheckPolicy {
     }
 };
 
+struct IsNotNullptrReturnCheckPolicy {
+    template <class Rv>
+    static inline bool returnValueIsOk(const Rv &rv) {
+        return nullptr != rv;
+    }
+};
+
 using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
 
 template <class R = DefaultReturnCheckPolicy,
@@ -94,7 +101,7 @@ template <class R = DefaultReturnCheckPolicy,
           class Callable = std::function<void(void)>,
           class... Args>
 inline auto CALL_CHECKED(Callable&& callable, Args&&... args) {
-    const auto& retVal = callable(std::forward<Args>(args)...);
+    const auto retVal = callable(std::forward<Args>(args)...);
     if (!R::returnValueIsOk(retVal)) {
         E::handleError(retVal);
     }

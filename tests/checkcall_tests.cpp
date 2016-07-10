@@ -137,6 +137,14 @@ TEST_F(CallGuardTest, testIsNotZeroCheckPolicy) {
     ASSERT_THROW(guard(0), std::runtime_error);
 }
 
+TEST_F(CallGuardTest, testIsNotNullCheckPolicy) {
+    auto func = [](const int *ptr) { return ptr; };
+    const int x = 17;
+    CallGuard<decltype(func), IsNotNullptrReturnCheckPolicy> guard{std::move(func)};
+    ASSERT_NO_THROW(guard(&x));
+    ASSERT_THROW(guard(nullptr), std::runtime_error);
+}
+
 TEST_F(CallGuardTest, defaultErrorPolicyTest) {
     CallGuard<decltype(_func), IsNotNegativeReturnCheckPolicy> guard{std::move(_func)};
     try {

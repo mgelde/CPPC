@@ -38,5 +38,6 @@ target_include_directories(CWrap INTERFACE
 
 enable_testing()
 add_subdirectory(tests)
+add_subdirectory(examples)
 
 install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION /usr/include/cwrap)
