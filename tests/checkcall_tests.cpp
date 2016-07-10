@@ -59,7 +59,7 @@ TEST(CallGuardTest, functionPointerTest) {
 TEST(CallGuardTest, callCheckTest) {
     MockAPI::instance().reset();
     ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
-    const auto x = CALL_CHECKED<decltype(some_func_with_error_code)>(some_func_with_error_code, 0);
+    const auto x = CALL_CHECKED(some_func_with_error_code, 0);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
     ASSERT_EQ(x, 0);
 }

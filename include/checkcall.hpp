@@ -76,6 +76,17 @@ struct IsNotNegativeReturnCheckPolicy {
     }
 };
 
+struct IsNotZeroReturnCheckPolicy {
+    template <class Rv>
+    static inline bool returnValueIsOk(const Rv& rv) {
+        static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
+                      "Must be an integral value");
+        static_assert(std::is_signed<std::remove_reference_t<Rv>>::value, "Must be a signed type");
+
+        return rv != 0;
+    }
+};
+
 using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
 
 template <class Functor>
@@ -95,6 +106,7 @@ public:
               typename = std::enable_if_t<std::is_default_constructible<T>::value>>
     CallGuard() : _functor{} {}
 
+    // TODO: make this more sane by allowing only "correct" invocations
     template <class... Args>
     auto operator()(Args&&... args) {
         auto retVal = _functor(std::forward<Args>(args)...);
@@ -108,10 +120,16 @@ private:
     FunctorOrFuncRefType<Functor> _functor;
 };
 
-template <class Functor, class... Args>
-auto CALL_CHECKED(FunctorOrFuncRefType<Functor> func, Args&&... args) {
-    static CallGuard<Functor> functor{std::move(func)};
-    return functor(std::forward<Args>(args)...);
+template <class Rv, class... Args>
+auto CALL_CHECKED(Rv (*func)(Args...), Args&&... args) {
+    CallGuard<decltype(func)> guard(func);
+    return guard(std::forward<Args>(args)...);
+}
+
+template <class Rv, class... Args>
+auto CALL_CHECKED(std::function<Rv(Args...)> func, Args&&... args) {
+    CallGuard<decltype(func)> guard(func);
+    return guard(std::forward<Args>(args)...);
 }
 
 }  // namepsace error
