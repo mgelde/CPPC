@@ -29,8 +29,15 @@
 
 namespace cwrap {
 
-namespace guard {
+namespace _auxiliary {
 
+/**
+ * @brief Struct to determine if a functor is noexcept.
+ *
+ * A functor may define an operator() to be either noexcept(true)
+ * or noexcept(false). This helper template exposes whether the
+ * operator is noeexcept or not.
+ */
 template <class FreePolicy>
 struct IsNoexcept {
 private:
@@ -57,6 +64,8 @@ public:
 };
 
 /**
+ * @brief Specialization for function pointers.
+ *
  * Function pointers are by default treated as noexcept(false).
  *
  * C++14 does not distinguish between function types of the form
@@ -70,6 +79,16 @@ public:
  */
 template <class Rv, class... Args>
 struct IsNoexcept<Rv (*)(Args...)> : public std::false_type {};
+
+/**
+ * Turn T into a reference-type, unless it's a pointer
+ */
+template <class T>
+using PointerOrRefType =
+        std::conditional_t<std::is_pointer<T>::value, T, std::add_lvalue_reference_t<T>>;
+}
+
+namespace guard {
 
 template <class T>
 struct ByValueStoragePolicy {
@@ -91,7 +110,7 @@ struct ByValueStoragePolicy {
     }
 };
 
-template <class T>  // TODO deleter
+template <class T>
 struct UniquePointerStoragePolicy {
     using RawType = std::remove_reference_t<T>;
     using StorageType = std::unique_ptr<std::remove_reference_t<T>>;
@@ -106,17 +125,14 @@ struct UniquePointerStoragePolicy {
     }
 
     template <class... Args>
-    inline static StorageType createFrom(Args &&... args) {
+    inline static StorageType createFrom(Args &&... args) noexcept(
+            noexcept(std::make_unique<RawType>(std::forward<Args>(args)...))) {
         return std::make_unique<RawType>(std::forward<Args>(args)...);
     }
 };
 
 template <class T>
-using _PointerOrRefType =
-        std::conditional_t<std::is_pointer<T>::value, T, std::add_lvalue_reference_t<T>>;
-
-template <class T>
-using _FreePolicyFunctionType = void(_PointerOrRefType<T>);
+using _FreePolicyFunctionType = void(_auxiliary::PointerOrRefType<T>);
 
 template <class T>
 using DefaultFreePolicy = std::function<_FreePolicyFunctionType<T>>;
@@ -175,7 +191,7 @@ public:
      * declare the operator() of the FreePolicy noexcept if it only uses C
      * functions.
      */
-    ~Guard() noexcept(IsNoexcept<FreePolicy>::value);
+    ~Guard() noexcept(_auxiliary::IsNoexcept<FreePolicy>::value);
 
     const Type &get() const;
     Type &get();
@@ -184,7 +200,7 @@ private:
     typename StoragePolicy::StorageType _guarded;
     bool _released{false};
     FreePolicy _freeFunc;
-    inline void _releaseIfNecessary() noexcept(IsNoexcept<FreePolicy>::value);
+    inline void _releaseIfNecessary() noexcept(_auxiliary::IsNoexcept<FreePolicy>::value);
 };
 
 template <class Type, class FreePolicy, class StoragePolicy>
@@ -195,7 +211,7 @@ Guard<Type, FreePolicy, StoragePolicy>::Guard(Guard &&other)
 
 template <class Type, class FreePolicy, class StoragePolicy>
 inline void Guard<Type, FreePolicy, StoragePolicy>::_releaseIfNecessary() noexcept(
-        IsNoexcept<FreePolicy>::value) {
+        _auxiliary::IsNoexcept<FreePolicy>::value) {
     if (!_released) {
         _freeFunc(StoragePolicy::getFrom(_guarded));
     }
@@ -211,7 +227,8 @@ Type &Guard<Type, FreePolicy, StoragePolicy>::get() {
 }
 
 template <class Type, class FreePolicy, class StoragePolicy>
-Guard<Type, FreePolicy, StoragePolicy>::~Guard() noexcept(IsNoexcept<FreePolicy>::value) {
+Guard<Type, FreePolicy, StoragePolicy>::~Guard() noexcept(
+        _auxiliary::IsNoexcept<FreePolicy>::value) {
     _releaseIfNecessary();
 }
 
@@ -226,5 +243,5 @@ Guard<Type, FreePolicy, StoragePolicy> &Guard<Type, FreePolicy, StoragePolicy>::
     return *this;
 }
 
-}  // namesapce guard
-}  // namepsace cwrap
+}  // namespace guard
+}  // namespace cwrap

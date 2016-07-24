@@ -63,7 +63,8 @@ public:
 };
 
 TEST_F(GuardFreeFuncTest, testFunctionPointerAsFreeFunc) {
-    auto guard = new Guard<some_type_t*, void(*)(some_type_t*)> {&free_resources, create_and_initialize()};
+    auto guard = new Guard<some_type_t *, void (*)(some_type_t *)>{&free_resources,
+                                                                   create_and_initialize()};
     ASSERT_NOT_CALLED(MockAPI::instance().freeResourcesFunc());
     delete guard;
     ASSERT_CALLED(MockAPI::instance().freeResourcesFunc());
@@ -126,7 +127,7 @@ TEST_F(GuardFreeFuncTest, testThatDefaulFreePolicyThrowsIfEmpty) {
     // a guard with the CustomFreePolicy and without a function to release resources
     GuardT<> *guard = new GuardT<>();
 
-    //make sure the destructor is called by deleting the guard
+    // make sure the destructor is called by deleting the guard
     ASSERT_THROW(delete guard, std::bad_function_call);
 }
 
@@ -270,6 +271,5 @@ static_assert(noexcept(std::declval<GuardT<CustomDeleterT>>().~Guard()),
 static_assert(!noexcept(std::declval<GuardT<>>().~Guard()),
               "Guard with DefaultFreePolicy should not have noexcept destructor.");
 
-static_assert(!noexcept(std::declval<GuardT<void (*)(some_type_t*)>>().~Guard()),
-            "Guard with function-pointer free policy should not have noexcept destructor");
-
+static_assert(!noexcept(std::declval<GuardT<void (*)(some_type_t *)>>().~Guard()),
+              "Guard with function-pointer free policy should not have noexcept destructor");
