@@ -34,6 +34,22 @@ using namespace cwrap::testing::mock;
 using namespace cwrap::testing::mock::api;
 using namespace cwrap::testing::assertions;
 
+TEST(CheckCallTest, testStadardUsage) {
+    MockAPI::instance().reset();
+    ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    const auto x = CALL_CHECKED(some_func_with_error_code, 0);
+    ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    ASSERT_EQ(x, 0);
+}
+
+TEST(CheckCallTest, testIsNotZeroReturnCheckPolicy) {
+    MockAPI::instance().reset();
+    ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    const auto x = CALL_CHECKED<IsNotZeroReturnCheckPolicy>(some_func_with_error_code, 1);
+    ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    ASSERT_EQ(x, 1);
+}
+
 TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
     bool called{false};
     auto func = [&called](int x, bool y) {
@@ -54,14 +70,6 @@ TEST(CallGuardTest, functionPointerTest) {
     const auto x = guard(17);
     ASSERT_EQ(x, 17);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
-}
-
-TEST(CallGuardTest, callCheckTest) {
-    MockAPI::instance().reset();
-    ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
-    const auto x = CALL_CHECKED(some_func_with_error_code, 0);
-    ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
-    ASSERT_EQ(x, 0);
 }
 
 TEST(CallGuardTest, testCallGuardDefaultConstructor) {

@@ -120,15 +120,21 @@ private:
     FunctorOrFuncRefType<Functor> _functor;
 };
 
-template <class Rv, class... Args>
+template <class R = DefaultReturnCheckPolicy,
+          class E = DefaultErrorPolicy,
+          class Rv = void,
+          class... Args>
 auto CALL_CHECKED(Rv (*func)(Args...), Args&&... args) {
-    CallGuard<decltype(func)> guard(func);
+    CallGuard<decltype(func), R, E> guard(func);
     return guard(std::forward<Args>(args)...);
 }
 
-template <class Rv, class... Args>
+template <class R = DefaultReturnCheckPolicy,
+          class E = DefaultErrorPolicy,
+          class Rv = void,
+          class... Args>
 auto CALL_CHECKED(std::function<Rv(Args...)> func, Args&&... args) {
-    CallGuard<decltype(func)> guard(func);
+    CallGuard<decltype(func), R, E> guard(func);
     return guard(std::forward<Args>(args)...);
 }
 
