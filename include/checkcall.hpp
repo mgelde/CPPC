@@ -89,15 +89,27 @@ struct IsNotZeroReturnCheckPolicy {
 
 using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
 
-template <class Functor>
-using FunctorOrFuncRefType = std::conditional_t<std::is_function<Functor>::value,
-                                                std::add_lvalue_reference_t<Functor>,
-                                                Functor>;
+template <class R = DefaultReturnCheckPolicy,
+          class E = DefaultErrorPolicy,
+          class Callable=std::function<void(void)>,
+          class... Args>
+inline auto CALL_CHECKED(Callable&& callable, Args&&... args) {
+    const auto& retVal = callable(std::forward<Args>(args)...);
+    if (!R::returnValueIsOk(retVal)) {
+        E::handleError(retVal);
+    }
+    return retVal;
+}
+
 
 template <class Functor,
           class ReturnCheckPolicy = DefaultReturnCheckPolicy,
           class ErrorPolicy = DefaultErrorPolicy>
 class CallGuard {
+private:
+    using FunctorOrFuncRefType = std::conditional_t<std::is_function<Functor>::value,
+                                                    std::add_lvalue_reference_t<Functor>,
+                                                    Functor>;
 public:
     template <class T>
     CallGuard(T&& t) : _functor{std::forward<T>(t)} {}
@@ -106,37 +118,15 @@ public:
               typename = std::enable_if_t<std::is_default_constructible<T>::value>>
     CallGuard() : _functor{} {}
 
-    // TODO: make this more sane by allowing only "correct" invocations
     template <class... Args>
     auto operator()(Args&&... args) {
-        auto retVal = _functor(std::forward<Args>(args)...);
-        if (!ReturnCheckPolicy::returnValueIsOk(retVal)) {
-            ErrorPolicy::handleError(retVal);
-        }
-        return retVal;
+        return CALL_CHECKED<ReturnCheckPolicy, ErrorPolicy>(_functor, std::forward<Args>(args)...);
     }
 
 private:
-    FunctorOrFuncRefType<Functor> _functor;
+    FunctorOrFuncRefType _functor;
 };
 
-template <class R = DefaultReturnCheckPolicy,
-          class E = DefaultErrorPolicy,
-          class Rv = void,
-          class... Args>
-auto CALL_CHECKED(Rv (*func)(Args...), Args&&... args) {
-    CallGuard<decltype(func), R, E> guard(func);
-    return guard(std::forward<Args>(args)...);
-}
-
-template <class R = DefaultReturnCheckPolicy,
-          class E = DefaultErrorPolicy,
-          class Rv = void,
-          class... Args>
-auto CALL_CHECKED(std::function<Rv(Args...)> func, Args&&... args) {
-    CallGuard<decltype(func), R, E> guard(func);
-    return guard(std::forward<Args>(args)...);
-}
 
 }  // namepsace error
 
