@@ -91,7 +91,7 @@ using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
 
 template <class R = DefaultReturnCheckPolicy,
           class E = DefaultErrorPolicy,
-          class Callable=std::function<void(void)>,
+          class Callable = std::function<void(void)>,
           class... Args>
 inline auto CALL_CHECKED(Callable&& callable, Args&&... args) {
     const auto& retVal = callable(std::forward<Args>(args)...);
@@ -101,7 +101,6 @@ inline auto CALL_CHECKED(Callable&& callable, Args&&... args) {
     return retVal;
 }
 
-
 template <class Functor,
           class ReturnCheckPolicy = DefaultReturnCheckPolicy,
           class ErrorPolicy = DefaultErrorPolicy>
@@ -110,6 +109,7 @@ private:
     using FunctorOrFuncRefType = std::conditional_t<std::is_function<Functor>::value,
                                                     std::add_lvalue_reference_t<Functor>,
                                                     Functor>;
+
 public:
     template <class T>
     CallGuard(T&& t) : _functor{std::forward<T>(t)} {}
@@ -127,7 +127,6 @@ private:
     FunctorOrFuncRefType _functor;
 };
 
-
-}  // namepsace error
+}  // namespace error
 
 }  // namespace cwrap
