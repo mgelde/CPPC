@@ -27,6 +27,10 @@ set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall")
 
 add_library(CWrap INTERFACE)
+
+find_package(Boost REQUIRED)
+
+target_include_directories(CWrap INTERFACE ${Boost_INCLUDE_DIRS})
 target_include_directories(CWrap INTERFACE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
       $<INSTALL_INTERFACE:include/cwrap>

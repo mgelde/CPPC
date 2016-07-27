@@ -29,14 +29,16 @@
 #include <type_traits>
 #include <utility>
 
+#include "boost/format.hpp"
+
 namespace cwrap {
 
 struct ReportReturnValueErrorPolicy {
     template <class Rv>
     static inline void handleError(const Rv& rv) {
-        std::ostringstream stream{"Return value indicated error. Got: "};
-        stream << rv;
-        throw std::runtime_error(stream.str());
+        boost::format fmtr{"Return value indicated error: %d"};
+        fmtr % rv;
+        throw std::runtime_error(fmtr.str());
     }
 };
 
@@ -48,7 +50,11 @@ struct ErrnoErrorPolicy {
 };
 
 struct ErrorCodeErrorPolicy {
-    static inline void handleError(int rv) { throw std::runtime_error(std::strerror(-rv)); }
+    template <class Rv>
+    static inline void handleError(const Rv& rv) {
+        static_assert(std::is_integral<std::decay_t<Rv>>::value, "Must be an integral value");
+        throw std::runtime_error(std::strerror(-rv));
+    }
 };
 
 using DefaultErrorPolicy = ReportReturnValueErrorPolicy;
@@ -56,9 +62,7 @@ using DefaultErrorPolicy = ReportReturnValueErrorPolicy;
 struct IsZeroReturnCheckPolicy {
     template <class Rv>
     static inline bool returnValueIsOk(const Rv& rv) {
-        static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
-                      "Must be an integral value");
-
+        static_assert(std::is_integral<std::decay_t<Rv>>::value, "Must be an integral value");
         return rv == 0;
     }
 };
@@ -66,9 +70,8 @@ struct IsZeroReturnCheckPolicy {
 struct IsNotNegativeReturnCheckPolicy {
     template <class Rv>
     static inline bool returnValueIsOk(const Rv& rv) {
-        static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
-                      "Must be an integral value");
-        static_assert(std::is_signed<std::remove_reference_t<Rv>>::value, "Must be a signed type");
+        static_assert(std::is_integral<std::decay_t<Rv>>::value, "Must be an integral value");
+        static_assert(std::is_signed<std::decay_t<Rv>>::value, "Must be a signed type");
 
         return rv >= 0;
     }
@@ -77,9 +80,8 @@ struct IsNotNegativeReturnCheckPolicy {
 struct IsNotZeroReturnCheckPolicy {
     template <class Rv>
     static inline bool returnValueIsOk(const Rv& rv) {
-        static_assert(std::is_integral<std::remove_reference_t<Rv>>::value,
-                      "Must be an integral value");
-        static_assert(std::is_signed<std::remove_reference_t<Rv>>::value, "Must be a signed type");
+        static_assert(std::is_integral<std::decay_t<Rv>>::value, "Must be an integral value");
+        static_assert(std::is_signed<std::decay_t<Rv>>::value, "Must be a signed type");
 
         return rv != 0;
     }
