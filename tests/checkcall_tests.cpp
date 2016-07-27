@@ -29,10 +29,10 @@
 #include "checkcall.hpp"
 #include "test_api.h"
 
-using namespace cwrap::error;
-using namespace cwrap::testing::mock;
-using namespace cwrap::testing::mock::api;
-using namespace cwrap::testing::assertions;
+using namespace ::cwrap;
+using namespace ::cwrap::testing::mock;
+using namespace ::cwrap::testing::mock::api;
+using namespace ::cwrap::testing::assertions;
 
 TEST(CheckCallTest, testStadardUsage) {
     MockAPI::instance().reset();

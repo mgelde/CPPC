@@ -22,7 +22,6 @@
 #pragma once
 
 #include <functional>
-#include <functional>
 #include <memory>
 #include <type_traits>
 #include <utility>
@@ -86,9 +85,8 @@ struct IsNoexcept<Rv (*)(Args...)> : public std::false_type {};
 template <class T>
 using PointerOrRefType =
         std::conditional_t<std::is_pointer<T>::value, T, std::add_lvalue_reference_t<T>>;
-}
 
-namespace guard {
+} // namespace _auxiliary
 
 template <class T>
 struct ByValueStoragePolicy {
@@ -243,5 +241,4 @@ Guard<Type, FreePolicy, StoragePolicy> &Guard<Type, FreePolicy, StoragePolicy>::
     return *this;
 }
 
-}  // namespace guard
 }  // namespace cwrap

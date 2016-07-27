@@ -27,7 +27,7 @@
 
 #include "test_api.h"
 
-using namespace ::cwrap::guard;
+using namespace ::cwrap;
 using namespace ::cwrap::testing::mock;
 using namespace ::cwrap::testing::mock::api;
 using namespace ::cwrap::testing::assertions;

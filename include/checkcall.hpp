@@ -31,8 +31,6 @@
 
 namespace cwrap {
 
-namespace error {
-
 struct ReportReturnValueErrorPolicy {
     template <class Rv>
     static inline void handleError(const Rv& rv) {
@@ -126,7 +124,5 @@ public:
 private:
     FunctorOrFuncRefType _functor;
 };
-
-}  // namespace error
 
 }  // namespace cwrap
