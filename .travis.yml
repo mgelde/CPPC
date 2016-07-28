@@ -11,6 +11,7 @@ addons:
       - cmake
       - cmake-data
       - libgtest-dev
+      - libboost-dev
 
 before_script:
     - export CXX=/usr/bin/g++-5
