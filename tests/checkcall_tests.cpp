@@ -36,22 +36,36 @@ using namespace ::cwrap::testing::assertions;
 
 class CheckCallTest : public ::testing::Test {
 public:
-    void SetUp() override { MockAPI::instance().reset(); }
+    void SetUp() override {
+        MockAPI::instance().reset();
+        ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    }
 };
 
-TEST_F(CheckCallTest, testStadardUsage) {
-    ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
-    const auto x = CALL_CHECKED(some_func_with_error_code, 0);
+TEST_F(CheckCallTest, testStandardUsage) {
+    const auto &x = CALL_CHECKED(some_func_with_error_code, 0);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
     ASSERT_EQ(x, 0);
 }
 
-TEST_F(CheckCallTest, testIsNotZeroReturnCheckPolicy) {
-    MockAPI::instance().reset();
-    ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
-    const auto x = CALL_CHECKED<IsNotZeroReturnCheckPolicy>(some_func_with_error_code, 1);
+TEST_F(CheckCallTest, testWithNonDefaultReturnCheckPolicy) {
+    const auto &x = CALL_CHECKED<IsNotZeroReturnCheckPolicy>(some_func_with_error_code, 1);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
     ASSERT_EQ(x, 1);
+    ASSERT_THROW(CALL_CHECKED<IsNotZeroReturnCheckPolicy>(some_func_with_error_code, 0),
+                 std::runtime_error);
+}
+
+TEST_F(CheckCallTest, testWithNonDefaultErrorPolicy) {
+    const auto &x = CALL_CHECKED<IsNotZeroReturnCheckPolicy, ErrorCodeErrorPolicy>(
+            some_func_with_error_code, 1);
+    ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    ASSERT_EQ(x, 1);
+    // we need a redundant pair of parenthesis to make the C pre-processor swallow the template
+    // arguments
+    ASSERT_THROW((CALL_CHECKED<IsZeroReturnCheckPolicy, ErrorCodeErrorPolicy>(
+                         some_func_with_error_code, -1)),
+                 std::runtime_error);
 }
 
 class CallGuardTest : public ::testing::Test {
@@ -116,6 +130,13 @@ TEST_F(CallGuardTest, testIsNotNegativeCheckPolicy) {
     ASSERT_THROW(guard(-1), std::runtime_error);
 }
 
+TEST_F(CallGuardTest, testIsNotZeroCheckPolicy) {
+    CallGuard<decltype(_func), IsNotZeroReturnCheckPolicy> guard{std::move(_func)};
+    ASSERT_NO_THROW(guard(1));
+    ASSERT_NO_THROW(guard(-1));
+    ASSERT_THROW(guard(0), std::runtime_error);
+}
+
 TEST_F(CallGuardTest, defaultErrorPolicyTest) {
     CallGuard<decltype(_func), IsNotNegativeReturnCheckPolicy> guard{std::move(_func)};
     try {
@@ -147,6 +168,18 @@ TEST_F(CallGuardTest, testErrorCodeErrorPolicy) {
         guard(-EINVAL);
     } catch (const std::runtime_error &e) {
         ASSERT_EQ(std::string(e.what()), std::string(std::strerror(EINVAL)));
+        return;
+    }
+    FAIL() << "Execution should not reach this line";
+}
+
+TEST_F(CallGuardTest, testReportReturnValueErrorPolicy) {
+    CallGuard<decltype(_func), IsNotNegativeReturnCheckPolicy, ReportReturnValueErrorPolicy> guard{
+            std::move(_func)};
+    try {
+        guard(-1337);
+    } catch (const std::runtime_error &e) {
+        ASSERT_EQ(std::string(e.what()), std::string("Return value indicated error: -1337"));
         return;
     }
     FAIL() << "Execution should not reach this line";
