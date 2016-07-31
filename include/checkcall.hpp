@@ -130,6 +130,7 @@ private:
 template <class ReturnCheckPolicy = DefaultReturnCheckPolicy,
           class ErrorPolicy = DefaultErrorPolicy>
 class CallCheckContext {
+public:
     template <class Callable, class... Args>
     static inline auto CALL_CHECKED(Callable&& callable, Args&&... args) {
         return ::cwrap::CALL_CHECKED<ReturnCheckPolicy, ErrorPolicy>(
