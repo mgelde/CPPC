@@ -127,4 +127,14 @@ private:
     FunctorOrFuncRefType _functor;
 };
 
+template <class ReturnCheckPolicy = DefaultReturnCheckPolicy,
+          class ErrorPolicy = DefaultErrorPolicy>
+class CallCheckContext {
+    template <class Callable, class... Args>
+    static inline auto CALL_CHECKED(Callable&& callable, Args&&... args) {
+        return ::cwrap::CALL_CHECKED<ReturnCheckPolicy, ErrorPolicy>(
+                std::forward<Callable>(callable), std::forward<Args>(args)...);
+    }
+};
+
 }  // namespace cwrap
