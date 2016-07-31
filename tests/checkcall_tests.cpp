@@ -34,15 +34,19 @@ using namespace ::cwrap::testing::mock;
 using namespace ::cwrap::testing::mock::api;
 using namespace ::cwrap::testing::assertions;
 
-TEST(CheckCallTest, testStadardUsage) {
-    MockAPI::instance().reset();
+class CheckCallTest : public ::testing::Test {
+public:
+    void SetUp() override { MockAPI::instance().reset(); }
+};
+
+TEST_F(CheckCallTest, testStadardUsage) {
     ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
     const auto x = CALL_CHECKED(some_func_with_error_code, 0);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
     ASSERT_EQ(x, 0);
 }
 
-TEST(CheckCallTest, testIsNotZeroReturnCheckPolicy) {
+TEST_F(CheckCallTest, testIsNotZeroReturnCheckPolicy) {
     MockAPI::instance().reset();
     ASSERT_NOT_CALLED(MockAPI::instance().someFuncWithErrorCode());
     const auto x = CALL_CHECKED<IsNotZeroReturnCheckPolicy>(some_func_with_error_code, 1);
@@ -50,21 +54,31 @@ TEST(CheckCallTest, testIsNotZeroReturnCheckPolicy) {
     ASSERT_EQ(x, 1);
 }
 
-TEST(CallGuardTest, testCallGuardClassCallCorrectly) {
-    bool called{false};
-    auto func = [&called](int x, bool y) {
-        called = true;
-        return y ? 2 * x : x;
-    };
-    CallGuard<decltype(func), IsNotNegativeReturnCheckPolicy> guard{std::move(func)};
-    ASSERT_FALSE(called);
-    const auto x = guard(8, true);
-    ASSERT_TRUE(called);
-    ASSERT_EQ(x, 16);
+class CallGuardTest : public ::testing::Test {
+public:
+    void SetUp() override {
+        MockAPI::instance().reset();
+        _called = false;
+        _func = [this](int x) {
+            _called = true;
+            return x;
+        };
+    }
+
+protected:
+    bool _called{false};
+    std::function<int(int)> _func;
+};
+
+TEST_F(CallGuardTest, testCallGuardClassCallCorrectly) {
+    CallGuard<decltype(_func), IsNotNegativeReturnCheckPolicy> guard{std::move(_func)};
+    ASSERT_FALSE(_called);
+    const auto x = guard(8);
+    ASSERT_TRUE(_called);
+    ASSERT_EQ(x, 8);
 }
 
-TEST(CallGuardTest, functionPointerTest) {
-    MockAPI::instance().reset();
+TEST_F(CallGuardTest, functionPointerTest) {
     CallGuard<decltype(some_func_with_error_code), IsNotNegativeReturnCheckPolicy> guard{
             some_func_with_error_code};
     const auto x = guard(17);
@@ -72,7 +86,7 @@ TEST(CallGuardTest, functionPointerTest) {
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
 }
 
-TEST(CallGuardTest, testCallGuardDefaultConstructor) {
+TEST_F(CallGuardTest, testCallGuardDefaultConstructor) {
     // functor has a default constructor
     struct Functor {
         bool operator()(int x) { return x > 0; }
@@ -87,26 +101,23 @@ TEST(CallGuardTest, testCallGuardDefaultConstructor) {
                   "Return type should be identical to functor");
 }
 
-TEST(CallGuardTest, testIsZeroReturnCheckPolicy) {
-    auto lambda = [](int x) { return x; };
+TEST_F(CallGuardTest, testIsZeroReturnCheckPolicy) {
     // IsZeroReturnCheckPolicy should be default, so don't specify it.
-    CallGuard<decltype(lambda)> guard{std::move(lambda)};
+    CallGuard<decltype(_func)> guard{std::move(_func)};
     ASSERT_THROW(guard(1), std::runtime_error);
     ASSERT_THROW(guard(-1), std::runtime_error);
     ASSERT_NO_THROW(guard(0));
 }
 
-TEST(CallGuardTest, testIsNotNegativeCheckPolicy) {
-    auto lambda = [](int x) { return x; };
-    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy> guard{std::move(lambda)};
+TEST_F(CallGuardTest, testIsNotNegativeCheckPolicy) {
+    CallGuard<decltype(_func), IsNotNegativeReturnCheckPolicy> guard{std::move(_func)};
     ASSERT_NO_THROW(guard(1));
     ASSERT_NO_THROW(guard(0));
     ASSERT_THROW(guard(-1), std::runtime_error);
 }
 
-TEST(CallGuardTest, defaultErrorPolicyTest) {
-    auto lambda = [](int x) { return x; };
-    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy> guard{std::move(lambda)};
+TEST_F(CallGuardTest, defaultErrorPolicyTest) {
+    CallGuard<decltype(_func), IsNotNegativeReturnCheckPolicy> guard{std::move(_func)};
     try {
         guard(-1337);
     } catch (const std::runtime_error &e) {
@@ -116,10 +127,9 @@ TEST(CallGuardTest, defaultErrorPolicyTest) {
     FAIL() << "Execution should not reach this line";
 }
 
-TEST(CallGuardTest, testErrnoErrorPolicy) {
-    auto lambda = [](int x) { return x; };
-    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy, ErrnoErrorPolicy> guard{
-            std::move(lambda)};
+TEST_F(CallGuardTest, testErrnoErrorPolicy) {
+    CallGuard<decltype(_func), IsNotNegativeReturnCheckPolicy, ErrnoErrorPolicy> guard{
+            std::move(_func)};
     errno = EINVAL;
     try {
         guard(-1337);
@@ -130,10 +140,9 @@ TEST(CallGuardTest, testErrnoErrorPolicy) {
     FAIL() << "Execution should not reach this line";
 }
 
-TEST(CallGuardTest, testErrorCodeErrorPolicy) {
-    auto lambda = [](int x) { return x; };
-    CallGuard<decltype(lambda), IsNotNegativeReturnCheckPolicy, ErrorCodeErrorPolicy> guard{
-            std::move(lambda)};
+TEST_F(CallGuardTest, testErrorCodeErrorPolicy) {
+    CallGuard<decltype(_func), IsNotNegativeReturnCheckPolicy, ErrorCodeErrorPolicy> guard{
+            std::move(_func)};
     try {
         guard(-EINVAL);
     } catch (const std::runtime_error &e) {
