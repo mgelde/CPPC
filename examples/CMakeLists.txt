@@ -30,3 +30,7 @@ if(OPENSSL_FOUND)
 else(OPENSSL_FOUND)
     message(STATUS "OpenSSL not available. Not building examples with OpenSSL dependecy.")
 endif(OPENSSL_FOUND)
+
+add_executable(getprio getprio.cpp)
+target_link_libraries(getprio CWrap)
+target_compile_options(getprio PRIVATE ${COMPILE_OPTIONS})
