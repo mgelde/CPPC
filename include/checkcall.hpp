@@ -33,6 +33,35 @@
 
 namespace cwrap {
 
+namespace _auxiliary {
+
+template <class T>
+struct HasPreCall {
+private:
+    template <class F, class X = decltype(F::preCall)>
+    static constexpr bool _dummy() {
+        return true;
+    }
+
+    template <class F, class... Args>
+    static constexpr bool _dummy(Args...) {
+        return false;
+    }
+
+public:
+    static constexpr bool value = _dummy<T>();
+};
+
+template <bool cond, class T>
+struct CallIf {
+    static inline void call(){};
+};
+template <class T>
+struct CallIf<true, T> {
+    static inline void call() { T::preCall(); };
+};
+}
+
 struct ReportReturnValueErrorPolicy {
     template <class Rv>
     static inline void handleError(const Rv& rv) {
@@ -89,9 +118,20 @@ struct IsNotZeroReturnCheckPolicy {
 
 struct IsNotNullptrReturnCheckPolicy {
     template <class Rv>
-    static inline bool returnValueIsOk(const Rv &rv) {
+    static inline bool returnValueIsOk(const Rv& rv) {
         return nullptr != rv;
     }
+};
+
+struct IsErrnoZeroReturnCheckPolicy {
+    template <class Rv>
+    static inline bool returnValueIsOk(const Rv&) {
+        return errno != 0;
+    }
+    static inline void preCall() {
+        errno = 0;
+    }
+  
 };
 
 using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
@@ -101,6 +141,7 @@ template <class R = DefaultReturnCheckPolicy,
           class Callable = std::function<void(void)>,
           class... Args>
 inline auto CALL_CHECKED(Callable&& callable, Args&&... args) {
+    ::cwrap::_auxiliary::CallIf<::cwrap::_auxiliary::HasPreCall<R>::value, R>::call();
     const auto retVal = callable(std::forward<Args>(args)...);
     if (!R::returnValueIsOk(retVal)) {
         E::handleError(retVal);

@@ -34,6 +34,34 @@ using namespace ::cwrap::testing::mock;
 using namespace ::cwrap::testing::mock::api;
 using namespace ::cwrap::testing::assertions;
 
+/**
+ * Tests for the auxiliary templates
+ */
+struct WithPreCall {
+    static bool called;
+    static inline void preCall() { called = true; };
+};
+struct WithoutPreCall {
+    static inline void fooCall(){};
+};
+bool WithPreCall::called = false;
+
+TEST(Auxiliary, testSFINAEDetectsMethod) {
+    ASSERT_TRUE(::cwrap::_auxiliary::HasPreCall<WithPreCall>::value);
+    ASSERT_FALSE(::cwrap::_auxiliary::HasPreCall<WithoutPreCall>::value);
+}
+
+TEST(Auxiliary, testCallIfTemplate) {
+    WithPreCall::called = false;
+    ::cwrap::_auxiliary::CallIf<false, WithPreCall>::call();
+    ASSERT_FALSE(WithPreCall::called);
+    ::cwrap::_auxiliary::CallIf<true, WithPreCall>::call();
+    ASSERT_TRUE(WithPreCall::called);
+}
+
+/**
+ * Tests for the CHECK_CALL function template.
+ */
 class CheckCallTest : public ::testing::Test {
 public:
     void SetUp() override {
@@ -68,6 +96,9 @@ TEST_F(CheckCallTest, testWithNonDefaultErrorPolicy) {
                  std::runtime_error);
 }
 
+/**
+ * Tests for the CallGuard class.
+ */
 class CallGuardTest : public ::testing::Test {
 public:
     void SetUp() override {
