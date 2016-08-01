@@ -126,12 +126,11 @@ struct IsNotNullptrReturnCheckPolicy {
 struct IsErrnoZeroReturnCheckPolicy {
     template <class Rv>
     static inline bool returnValueIsOk(const Rv&) {
-        return errno != 0;
+        return errno == 0;
     }
     static inline void preCall() {
         errno = 0;
     }
-  
 };
 
 using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;

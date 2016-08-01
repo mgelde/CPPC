@@ -176,6 +176,20 @@ TEST_F(CallGuardTest, testIsNotNullCheckPolicy) {
     ASSERT_THROW(guard(nullptr), std::runtime_error);
 }
 
+TEST_F(CallGuardTest, testIsErrnoZeroReturnCheckPolicy) {
+    bool wasErrnoZero{false};
+    auto func = [&wasErrnoZero](int i) {
+        wasErrnoZero = (errno == 0);
+        errno = i;
+        return wasErrnoZero;
+    };
+    CallGuard<decltype(func), IsErrnoZeroReturnCheckPolicy > guard{std::move(func)};
+    errno = 17;  // set errno to verify that IsErrnoZeroReturnCheckPolicy resets this to zero
+    ASSERT_NO_THROW(guard(0));
+    ASSERT_TRUE(wasErrnoZero);
+    ASSERT_THROW(guard(1), std::runtime_error);
+}
+
 TEST_F(CallGuardTest, defaultErrorPolicyTest) {
     CallGuard<decltype(_func), IsNotNegativeReturnCheckPolicy> guard{std::move(_func)};
     try {
