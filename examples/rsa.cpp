@@ -144,12 +144,12 @@ using ct = cwrap::CallCheckContext<cwrap::IsNotZeroReturnCheckPolicy, OpenSSLErr
 using ct_ptr = cwrap::CallCheckContext<cwrap::IsNotNullptrReturnCheckPolicy, OpenSSLErrorPolicy>;
 
 int rsaKeygenCWrapWay() {
-    ct::CALL_CHECKED(RAND_status);
-    RSAGuard rsa{ct_ptr::CALL_CHECKED(RSA_new)};
-    BNGuard exponent{ct_ptr::CALL_CHECKED(BN_new)};
-    ct::CALL_CHECKED(BN_set_word, exponent.get(), 65537);
-    ct::CALL_CHECKED(RSA_generate_key_ex, rsa.get(), 2048, exponent.get(), nullptr);
-    ct::CALL_CHECKED(RSA_print_fp, stdout, rsa.get(), INDENT);
+    ct::callChecked(RAND_status);
+    RSAGuard rsa{ct_ptr::callChecked(RSA_new)};
+    BNGuard exponent{ct_ptr::callChecked(BN_new)};
+    ct::callChecked(BN_set_word, exponent.get(), 65537);
+    ct::callChecked(RSA_generate_key_ex, rsa.get(), 2048, exponent.get(), nullptr);
+    ct::callChecked(RSA_print_fp, stdout, rsa.get(), INDENT);
     return 0;
 }
 

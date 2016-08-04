@@ -71,27 +71,27 @@ public:
 };
 
 TEST_F(CheckCallTest, testStandardUsage) {
-    const auto &x = CALL_CHECKED(some_func_with_error_code, 0);
+    const auto &x = callChecked(some_func_with_error_code, 0);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
     ASSERT_EQ(x, 0);
 }
 
 TEST_F(CheckCallTest, testWithNonDefaultReturnCheckPolicy) {
-    const auto &x = CALL_CHECKED<IsNotZeroReturnCheckPolicy>(some_func_with_error_code, 1);
+    const auto &x = callChecked<IsNotZeroReturnCheckPolicy>(some_func_with_error_code, 1);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
     ASSERT_EQ(x, 1);
-    ASSERT_THROW(CALL_CHECKED<IsNotZeroReturnCheckPolicy>(some_func_with_error_code, 0),
+    ASSERT_THROW(callChecked<IsNotZeroReturnCheckPolicy>(some_func_with_error_code, 0),
                  std::runtime_error);
 }
 
 TEST_F(CheckCallTest, testWithNonDefaultErrorPolicy) {
-    const auto &x = CALL_CHECKED<IsNotZeroReturnCheckPolicy, ErrorCodeErrorPolicy>(
+    const auto &x = callChecked<IsNotZeroReturnCheckPolicy, ErrorCodeErrorPolicy>(
             some_func_with_error_code, 1);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
     ASSERT_EQ(x, 1);
     // we need a redundant pair of parenthesis to make the C pre-processor swallow the template
     // arguments
-    ASSERT_THROW((CALL_CHECKED<IsZeroReturnCheckPolicy, ErrorCodeErrorPolicy>(
+    ASSERT_THROW((callChecked<IsZeroReturnCheckPolicy, ErrorCodeErrorPolicy>(
                          some_func_with_error_code, -1)),
                  std::runtime_error);
 }

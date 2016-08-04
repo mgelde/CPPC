@@ -128,9 +128,7 @@ struct IsErrnoZeroReturnCheckPolicy {
     static inline bool returnValueIsOk(const Rv&) {
         return errno == 0;
     }
-    static inline void preCall() {
-        errno = 0;
-    }
+    static inline void preCall() { errno = 0; }
 };
 
 using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
@@ -139,7 +137,7 @@ template <class R = DefaultReturnCheckPolicy,
           class E = DefaultErrorPolicy,
           class Callable = std::function<void(void)>,
           class... Args>
-inline auto CALL_CHECKED(Callable&& callable, Args&&... args) {
+inline auto callChecked(Callable&& callable, Args&&... args) {
     ::cwrap::_auxiliary::CallIf<::cwrap::_auxiliary::HasPreCall<R>::value, R>::call();
     const auto retVal = callable(std::forward<Args>(args)...);
     if (!R::returnValueIsOk(retVal)) {
@@ -167,7 +165,7 @@ public:
 
     template <class... Args>
     auto operator()(Args&&... args) {
-        return CALL_CHECKED<ReturnCheckPolicy, ErrorPolicy>(_functor, std::forward<Args>(args)...);
+        return callChecked<ReturnCheckPolicy, ErrorPolicy>(_functor, std::forward<Args>(args)...);
     }
 
 private:
@@ -179,8 +177,8 @@ template <class ReturnCheckPolicy = DefaultReturnCheckPolicy,
 class CallCheckContext {
 public:
     template <class Callable, class... Args>
-    static inline auto CALL_CHECKED(Callable&& callable, Args&&... args) {
-        return ::cwrap::CALL_CHECKED<ReturnCheckPolicy, ErrorPolicy>(
+    static inline auto callChecked(Callable&& callable, Args&&... args) {
+        return ::cwrap::callChecked<ReturnCheckPolicy, ErrorPolicy>(
                 std::forward<Callable>(callable), std::forward<Args>(args)...);
     }
 };
