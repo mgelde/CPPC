@@ -82,6 +82,8 @@ Here's how to achieve the same using CWrap (well actually, the code below throws
     ct::callChecked(BN_set_word, exponent.get(), 65537);
     ct::callChecked(RSA_generate_key_ex, rsa.get(), 2048, exponent.get(), nullptr);
 ```
+Note that we ignore the resource leaks here. In order to deal with those, we could use a smart-pointer or CWrap's `Guard` class (see below).
+
 You can look at a more detailed snippet in examples/rsa.cpp. Looking at that file: If compiled with gcc 6.1.1 and optimization -O2, the CWrap way of creating an RSA keypair results in 264 bytes in the binary, whereas the "standard C way" compiles to 550 bytes (with clang 3.8.1 we see 278 vs. 503 bytes). I'll try to produce a more detailed analysis in a blog-post.
 
 ### Guard
