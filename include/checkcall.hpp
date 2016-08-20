@@ -64,27 +64,36 @@ struct CallIf<true, T> {
 
 struct ReportReturnValueErrorPolicy {
     template <class Rv>
-    static inline void handleError(const Rv& rv) {
-        boost::format fmtr{"Return value indicated error: %d"};
-        fmtr % rv;
-        throw std::runtime_error(fmtr.str());
-    }
+    static void handleError(const Rv& rv);
 };
+
+template <class Rv>
+void ReportReturnValueErrorPolicy::handleError(const Rv& rv) {
+    boost::format fmtr{"Return value indicated error: %d"};
+    fmtr % rv;
+    throw std::runtime_error(fmtr.str());
+}
 
 struct ErrnoErrorPolicy {
     template <class Rv>
-    static inline void handleError(const Rv&) {
-        throw std::runtime_error(std::strerror(errno));
-    }
+    static void handleError(const Rv&);
 };
+
+template <class Rv>
+void ErrnoErrorPolicy::handleError(const Rv&) {
+    throw std::runtime_error(std::strerror(errno));
+}
 
 struct ErrorCodeErrorPolicy {
     template <class Rv>
-    static inline void handleError(const Rv& rv) {
-        static_assert(std::is_integral<std::decay_t<Rv>>::value, "Must be an integral value");
-        throw std::runtime_error(std::strerror(-rv));
-    }
+    static void handleError(const Rv& rv);
 };
+
+template <class Rv>
+void ErrorCodeErrorPolicy::handleError(const Rv& rv) {
+    static_assert(std::is_integral<std::decay_t<Rv>>::value, "Must be an integral value");
+    throw std::runtime_error(std::strerror(-rv));
+}
 
 using DefaultErrorPolicy = ReportReturnValueErrorPolicy;
 
