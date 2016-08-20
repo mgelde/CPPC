@@ -55,9 +55,23 @@ For example, consider the following code:
 ```
 This is how you create a new RSA context in [Open SSL](https://www.openssl.org/). Note that you need to do a lot of error handling. This includes some library-specific way of getting an indication of what actually went wrong.
 
-Here's how to achieve the same using CWrap (well actually, the code below throws on error instead of logging to stderr...; but you can specify that with a policy via a template parameter!):
+Here's how to achieve the same using CWrap (well actually, the code below throws on error instead of logging to stderr... but as you can see in `OpenSSLErrorPolicy`, this is up to the client-code):
 
 ```cpp
+    struct OpenSSLErrorPolicy {
+        template <class Rv>
+        static void handleError(const Rv &);
+    };
+
+    template <class Rv>
+    void OpenSSLErrorPolicy::handleError(const Rv &) {
+        throw std::runtime_error(
+                (boost::format("%s: %d") % ERR_error_string(ERR_get_error(), nullptr) % ERR_get_error())
+                        .str());
+    }
+
+    ...
+
     // openssl-functions use a non-zero return code to indicate error
     using ct = cwrap::CallCheckContext<cwrap::IsNotZeroReturnCheckPolicy, OpenSSLErrorPolicy>;
     //functions returning pointers return nullptr on error
@@ -68,7 +82,7 @@ Here's how to achieve the same using CWrap (well actually, the code below throws
     ct::callChecked(BN_set_word, exponent.get(), 65537);
     ct::callChecked(RSA_generate_key_ex, rsa.get(), 2048, exponent.get(), nullptr);
 ```
-You can look at a more detailed snippet in examples/rsa.cpp. Looking at that file: If compiled with gcc 6.1.1 and optimization -O1, the CWrap way of creating an RSA keypair results in 269 bytes in the binary, whereas the "standard C way" compiles to 799 bytes.
+You can look at a more detailed snippet in examples/rsa.cpp. Looking at that file: If compiled with gcc 6.1.1 and optimization -O2, the CWrap way of creating an RSA keypair results in 264 bytes in the binary, whereas the "standard C way" compiles to 550 bytes (with clang 3.8.1 we see 278 vs. 503 bytes). I'll try to produce a more detailed analysis in a blog-post.
 
-* `Guard`  
-A class used to wrap C-types so that they are always deallocated using an arbitrary function. This can be used to ensure that pointers returned from C APIs are always deallocated using the proper deallocation strategy mandates by the C API.
+### Guard
+The `Guard` class can be used to wrap C-types so that they are always deallocated using an arbitrary function. The effect is very similar to that of a smart-pointer. Indeed, in many cases a smart pointer is just as good. But there are some scenarios in which a smart pointer is a bit awkward to use.

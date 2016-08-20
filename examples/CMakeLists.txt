@@ -21,9 +21,12 @@
 
 find_package(OpenSSL)
 
+set(COMPILE_OPTIONS "-O2")
+
 if(OPENSSL_FOUND)
     add_executable(rsa_keypair rsa.cpp)
     target_link_libraries(rsa_keypair ${OPENSSL_LIBRARIES} CWrap)
+    target_compile_options(rsa_keypair PRIVATE ${COMPILE_OPTIONS})
 else(OPENSSL_FOUND)
     message(STATUS "OpenSSL not available. Not building examples with OpenSSL dependecy.")
 endif(OPENSSL_FOUND)

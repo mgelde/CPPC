@@ -132,12 +132,15 @@ using BNGuard = cwrap::Guard<BIGNUM *, BNDeleter>;
 
 struct OpenSSLErrorPolicy {
     template <class Rv>
-    static inline void handleError(const Rv&) {
-        throw std::runtime_error((boost::format("%s: %d") %
-                                  ERR_error_string(ERR_get_error(), nullptr) % ERR_get_error())
-                                         .str());
-    }
+    static void handleError(const Rv &);
 };
+
+template <class Rv>
+void OpenSSLErrorPolicy::handleError(const Rv &) {
+    throw std::runtime_error(
+            (boost::format("%s: %d") % ERR_error_string(ERR_get_error(), nullptr) % ERR_get_error())
+                    .str());
+}
 
 // openssl-functions use a non-zero return code to indicate error
 using ct = cwrap::CallCheckContext<cwrap::IsNotZeroReturnCheckPolicy, OpenSSLErrorPolicy>;
