@@ -34,3 +34,7 @@ endif(OPENSSL_FOUND)
 add_executable(getprio getprio.cpp)
 target_link_libraries(getprio CWrap)
 target_compile_options(getprio PRIVATE ${COMPILE_OPTIONS})
+
+add_executable(getaddrinfo getaddrinfo.cpp)
+target_link_libraries(getaddrinfo CWrap)
+target_compile_options(getaddrinfo PRIVATE ${COMPILE_OPTIONS})

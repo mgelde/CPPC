@@ -86,7 +86,7 @@ template <class T>
 using PointerOrRefType =
         std::conditional_t<std::is_pointer<T>::value, T, std::add_lvalue_reference_t<T>>;
 
-} // namespace _auxiliary
+}  // namespace _auxiliary
 
 template <class T>
 struct ByValueStoragePolicy {
@@ -135,8 +135,7 @@ using _FreePolicyFunctionType = void(_auxiliary::PointerOrRefType<T>);
 template <class T>
 using DefaultFreePolicy = std::function<_FreePolicyFunctionType<T>>;
 
-template <class Type,  // what if: Type is const, Type is volatile, type is
-                       // pointer to const?
+template <class Type,
           class FreePolicy = DefaultFreePolicy<Type>,
           class StoragePolicy = ByValueStoragePolicy<Type>>
 class Guard {
