@@ -35,22 +35,14 @@ namespace cwrap {
 
 namespace _auxiliary {
 
+template <class... Args>
+using void_t = void;
+
+template <class T, class X = void_t<>>
+struct HasPreCall : public std::false_type {};
+
 template <class T>
-struct HasPreCall {
-private:
-    template <class F, class X = decltype(F::preCall)>
-    static constexpr bool _dummy() {
-        return true;
-    }
-
-    template <class F, class... Args>
-    static constexpr bool _dummy(Args...) {
-        return false;
-    }
-
-public:
-    static constexpr bool value = _dummy<T>();
-};
+struct HasPreCall<T, void_t<decltype(T::preCall)>> : public std::true_type {};
 
 template <bool cond, class T>
 struct CallIf {
