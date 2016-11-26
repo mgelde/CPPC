@@ -46,16 +46,11 @@ struct WithoutPreCall {
 };
 bool WithPreCall::called = false;
 
-TEST(Auxiliary, testSFINAEDetectsMethod) {
-    ASSERT_TRUE(::cwrap::_auxiliary::HasPreCall<WithPreCall>::value);
-    ASSERT_FALSE(::cwrap::_auxiliary::HasPreCall<WithoutPreCall>::value);
-}
-
-TEST(Auxiliary, testCallIfTemplate) {
+TEST(Auxiliary, callPrecCallIfPresentSFINAE) {
     WithPreCall::called = false;
-    ::cwrap::_auxiliary::CallIf<false, WithPreCall>::call();
+    ::cwrap::_auxiliary::callPrecCallIfPresent<WithoutPreCall>();
     ASSERT_FALSE(WithPreCall::called);
-    ::cwrap::_auxiliary::CallIf<true, WithPreCall>::call();
+    ::cwrap::_auxiliary::callPrecCallIfPresent<WithPreCall>();
     ASSERT_TRUE(WithPreCall::called);
 }
 

@@ -35,33 +35,21 @@ namespace cwrap {
 
 namespace _auxiliary {
 
-template <class...>
-struct _make_void {
-    using type = void;
-};
-
-template <class... Args>
-using void_t = typename _make_void<Args...>::type;
-
 template <class T>
 using EnableIfIsPrecallFunc = std::enable_if_t<std::is_same<T, void()>::value>;
 
-template <class, class = void>
-struct HasPreCall : public std::false_type {};
+template <class T, class = EnableIfIsPrecallFunc<decltype(T::preCall)>>
+inline void _callIf(decltype(T::preCall) *) {
+    T::preCall();
+}
+
+template <class... Ts>
+inline void _callIf(Ts*...) {}
 
 template <class T>
-struct HasPreCall<T, void_t<EnableIfIsPrecallFunc<decltype(T::preCall)>>> : public std::true_type {
-};
-
-template <bool cond, class T>
-struct CallIf {
-    static inline void call(){};
-};
-
-template <class T>
-struct CallIf<true, T> {
-    static inline void call() { T::preCall(); };
-};
+inline void callPrecCallIfPresent() {
+    _callIf<T>(nullptr);
+}
 
 }  // ::_auxiliary
 
@@ -150,7 +138,7 @@ template <class R = DefaultReturnCheckPolicy,
           class Callable = std::function<void(void)>,
           class... Args>
 inline auto callChecked(Callable&& callable, Args&&... args) {
-    ::cwrap::_auxiliary::CallIf<::cwrap::_auxiliary::HasPreCall<R>::value, R>::call();
+    ::cwrap::_auxiliary::callPrecCallIfPresent<R>();
     const auto retVal = callable(std::forward<Args>(args)...);
     if (!R::returnValueIsOk(retVal)) {
         E::handleError(retVal);
