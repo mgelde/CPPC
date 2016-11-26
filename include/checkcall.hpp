@@ -35,24 +35,35 @@ namespace cwrap {
 
 namespace _auxiliary {
 
-template <class... Args>
-using void_t = void;
+template <class...>
+struct _make_void {
+    using type = void;
+};
 
-template <class T, class X = void_t<>>
+template <class... Args>
+using void_t = typename _make_void<Args...>::type;
+
+template <class T>
+using EnableIfIsPrecallFunc = std::enable_if_t<std::is_same<T, void()>::value>;
+
+template <class, class = void>
 struct HasPreCall : public std::false_type {};
 
 template <class T>
-struct HasPreCall<T, void_t<decltype(T::preCall)>> : public std::true_type {};
+struct HasPreCall<T, void_t<EnableIfIsPrecallFunc<decltype(T::preCall)>>> : public std::true_type {
+};
 
 template <bool cond, class T>
 struct CallIf {
     static inline void call(){};
 };
+
 template <class T>
 struct CallIf<true, T> {
     static inline void call() { T::preCall(); };
 };
-}
+
+}  // ::_auxiliary
 
 struct ReportReturnValueErrorPolicy {
     template <class Rv>
