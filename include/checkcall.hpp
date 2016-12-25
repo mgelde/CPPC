@@ -39,7 +39,7 @@ template <class T>
 using EnableIfIsPrecallFunc = std::enable_if_t<std::is_same<T, void()>::value>;
 
 template <class T, class = EnableIfIsPrecallFunc<decltype(T::preCall)>>
-inline void _callIf(decltype(T::preCall) *) {
+inline void _callIf(void*) {
     T::preCall();
 }
 
@@ -50,6 +50,53 @@ template <class T>
 inline void callPrecCallIfPresent() {
     _callIf<T>(nullptr);
 }
+
+/**
+ * Let's define C++17's  void_t helper-template.
+ */
+template <class...>
+struct _VoidT {
+    using type = void;
+};
+template <class... Ts>
+using VoidT = typename _VoidT<Ts...>::type;
+
+/**
+ * Helper template to wrap the handling of error conditions and return codes.
+ * This is necessary to obtain a correct return value (in case of
+ * return-value-modifying ErrorPolicies) without complication to
+ * function-template 'callChecked' (defined below).
+ */
+template <class ReturnCheckPolicy, class ErrorPolicy, class Rv, class = VoidT<>>
+struct ReturnCheckWrapper {
+    template <class R>
+    inline static Rv policyHandeledReturnValue(const R& rv) {
+        if (!ReturnCheckPolicy::returnValueIsOk(rv)) {
+            ErrorPolicy::handleError(rv);
+        }
+        return rv;
+    }
+};
+
+/**
+ * Template specialization that handles the case where an ErrorPolicy modifies
+ * the returnValue. This is recognized by inspecting the 'handleOk' function, its
+ * type and the return value of both 'handleOk' and 'handleError' (they must
+ * match).
+ */
+template <class ReturnCheckPolicy, class ErrorPolicy, class Rv>
+struct ReturnCheckWrapper<ReturnCheckPolicy,
+                          ErrorPolicy,
+                          Rv,
+                          VoidT<decltype(ErrorPolicy::handleOk(std::declval<Rv>()))>> {
+    template <class R>
+    inline static auto policyHandeledReturnValue(const R& rv) {
+        if (!ReturnCheckPolicy::returnValueIsOk(rv)) {
+            return ErrorPolicy::handleError(rv);
+        }
+        return ErrorPolicy::handleOk(rv);
+    }
+};
 
 }  // ::_auxiliary
 
@@ -140,10 +187,8 @@ template <class R = DefaultReturnCheckPolicy,
 inline auto callChecked(Callable&& callable, Args&&... args) {
     ::cwrap::_auxiliary::callPrecCallIfPresent<R>();
     const auto retVal = callable(std::forward<Args>(args)...);
-    if (!R::returnValueIsOk(retVal)) {
-        E::handleError(retVal);
-    }
-    return retVal;
+    return _auxiliary::ReturnCheckWrapper<R, E, decltype(retVal)>::policyHandeledReturnValue(
+            retVal);
 }
 
 template <class Functor,

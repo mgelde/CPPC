@@ -35,7 +35,7 @@ using namespace ::cwrap::testing::mock::api;
 using namespace ::cwrap::testing::assertions;
 
 /**
- * Tests for the auxiliary templates
+ * Auxiliary templates for testing
  */
 struct WithPreCall {
     static bool called;
@@ -92,6 +92,33 @@ TEST_F(CheckCallTest, testWithNonDefaultErrorPolicy) {
 }
 
 /**
+ * Define a CustomReturnValuePolicy that modifies the return value.
+ */
+struct CustomErrorPolicyWithReturnValueModification {
+    template <class V>
+    static std::string handleError(V &&) {
+        return "false";
+    }
+    template <class V>
+    static std::string handleOk(V &&) {
+        return "true";
+    }
+};
+
+TEST_F(CheckCallTest, testModifyReturnValue) {
+    auto rv = callChecked<IsZeroReturnCheckPolicy, CustomErrorPolicyWithReturnValueModification>(
+            some_func_with_error_code, -1);
+    ASSERT_EQ(rv, "false");
+
+    rv = callChecked<IsZeroReturnCheckPolicy, CustomErrorPolicyWithReturnValueModification>(
+            some_func_with_error_code, 0);
+    ASSERT_EQ(rv, "true");
+
+    static_assert(std::is_same<std::string, decltype(rv)>::value,
+                  "The return type must be same as ErrorPolicies return-value-type");
+}
+
+/**
  * Tests for the CallGuard class.
  */
 class CallGuardTest : public ::testing::Test {
@@ -131,11 +158,11 @@ TEST_F(CallGuardTest, testCallGuardDefaultConstructor) {
     struct Functor {
         bool operator()(int x) { return x > 0; }
     };
-    struct CustomReturnPolicy {
+    struct CustomReturnCheckPolicy {
         static inline bool returnValueIsOk(bool b) { return b; }
     };
 
-    CallGuard<Functor, CustomReturnPolicy> guard{};
+    CallGuard<Functor, CustomReturnCheckPolicy> guard{};
     ASSERT_TRUE(guard(17));
     static_assert(std::is_same<bool, decltype(guard(17))>::value,
                   "Return type should be identical to functor");
@@ -178,7 +205,7 @@ TEST_F(CallGuardTest, testIsErrnoZeroReturnCheckPolicy) {
         errno = i;
         return wasErrnoZero;
     };
-    CallGuard<decltype(func), IsErrnoZeroReturnCheckPolicy > guard{std::move(func)};
+    CallGuard<decltype(func), IsErrnoZeroReturnCheckPolicy> guard{std::move(func)};
     errno = 17;  // set errno to verify that IsErrnoZeroReturnCheckPolicy resets this to zero
     ASSERT_NO_THROW(guard(0));
     ASSERT_TRUE(wasErrnoZero);
