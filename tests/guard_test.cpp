@@ -18,14 +18,14 @@
 
 #include "gtest/gtest.h"
 
-#include "cwrap.hpp"
+#include "cppc.hpp"
 
 #include "test_api.h"
 
-using namespace ::cwrap;
-using namespace ::cwrap::testing::mock;
-using namespace ::cwrap::testing::mock::api;
-using namespace ::cwrap::testing::assertions;
+using namespace ::cppc;
+using namespace ::cppc::testing::mock;
+using namespace ::cppc::testing::mock::api;
+using namespace ::cppc::testing::assertions;
 
 template <class T = DefaultFreePolicy<some_type_t>, class S = ByValueStoragePolicy<some_type_t>>
 using GuardT = Guard<some_type_t, T, S>;

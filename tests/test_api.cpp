@@ -17,7 +17,7 @@
 
 #include "test_api.h"
 
-namespace cwrap {
+namespace cppc {
 
 namespace testing {
 
@@ -105,4 +105,4 @@ MockAPI &MockAPI::instance() {
 
 }  // namespace testing
 
-}  // namespace cwrap
+}  // namespace cppc

@@ -21,7 +21,7 @@
 #include <type_traits>
 #include <utility>
 
-namespace cwrap {
+namespace cppc {
 
 namespace _auxiliary {
 
@@ -235,4 +235,4 @@ Guard<Type, FreePolicy, StoragePolicy> &Guard<Type, FreePolicy, StoragePolicy>::
     return *this;
 }
 
-}  // namespace cwrap
+}  // namespace cppc

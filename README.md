@@ -1,14 +1,14 @@
-[![Build Status](https://travis-ci.org/mgelde/CWrap.svg?branch=master)](https://travis-ci.org/mgelde/CWrap)
+[![Build Status](https://travis-ci.org/mgelde/CPPC.svg?branch=master)](https://travis-ci.org/mgelde/CPPC)
 
-CWrap - Wrap C-code easily.
+CPPC - Wrap C-code easily.
 =====
 
 Introduction
 --------
 
-CWrap is a header-only library designed to more easily use C-code from C++. It provides helper classes and methods to bring type and memory safety to C APIs. It also helps to avoid boilerplate code that typically stems from error handling in C.
+CPPC is a header-only library designed to more easily use C-code from C++. It provides helper classes and methods to bring type and memory safety to C APIs. It also helps to avoid boilerplate code that typically stems from error handling in C.
 
-Currently, CWrap provides the following features:  
+Currently, CPPC provides the following features:  
 * `checkcall`
 A set of functions and functors to allow for easier, more readable error handling, while removing code duplication both in the binary and in the source file.
 * `Guard`
@@ -55,7 +55,7 @@ For example, consider the following code:
 ```
 This is how you create a new RSA context in [Open SSL](https://www.openssl.org/). Note that you need to do a lot of error handling. This includes some library-specific way of getting an indication of what actually went wrong.
 
-Here's how to achieve the same using CWrap (well actually, the code below throws on error instead of logging to stderr... but as you can see in `OpenSSLErrorPolicy`, this is up to the client-code):
+Here's how to achieve the same using CPPC (well actually, the code below throws on error instead of logging to stderr... but as you can see in `OpenSSLErrorPolicy`, this is up to the client-code):
 
 ```cpp
     struct OpenSSLErrorPolicy {
@@ -73,18 +73,18 @@ Here's how to achieve the same using CWrap (well actually, the code below throws
     ...
 
     // openssl-functions use a non-zero return code to indicate error
-    using ct = cwrap::CallCheckContext<cwrap::IsNotZeroReturnCheckPolicy, OpenSSLErrorPolicy>;
+    using ct = cppc::CallCheckContext<cppc::IsNotZeroReturnCheckPolicy, OpenSSLErrorPolicy>;
     //functions returning pointers return nullptr on error
-    using ct_ptr = cwrap::CallCheckContext<cwrap::IsNotNullptrReturnCheckPolicy, OpenSSLErrorPolicy>;
+    using ct_ptr = cppc::CallCheckContext<cppc::IsNotNullptrReturnCheckPolicy, OpenSSLErrorPolicy>;
 
     RSA *rsa = ct_ptr::callChecked(RSA_new);
     BIGNUM *exponent = ct_ptr::callChecked(BN_new);
     ct::callChecked(BN_set_word, exponent.get(), 65537);
     ct::callChecked(RSA_generate_key_ex, rsa.get(), 2048, exponent.get(), nullptr);
 ```
-Note that we ignore the resource leaks here. In order to deal with those, we could use a smart-pointer or CWrap's `Guard` class (see below).
+Note that we ignore the resource leaks here. In order to deal with those, we could use a smart-pointer or CPPC's `Guard` class (see below).
 
-You can look at a more detailed snippet in examples/rsa.cpp. Looking at that file: If compiled with gcc 6.1.1 and optimization -O2, the CWrap way of creating an RSA keypair results in 264 bytes in the binary, whereas the "standard C way" compiles to 550 bytes (with clang 3.8.1 we see 278 vs. 503 bytes). I'll try to produce a more detailed analysis in a blog-post.
+You can look at a more detailed snippet in examples/rsa.cpp. Looking at that file: If compiled with gcc 6.1.1 and optimization -O2, the CPPC way of creating an RSA keypair results in 264 bytes in the binary, whereas the "standard C way" compiles to 550 bytes (with clang 3.8.1 we see 278 vs. 503 bytes). I'll try to produce a more detailed analysis in a blog-post.
 
 ### Guard
 The `Guard` class can be used to wrap C-types so that they are always deallocated using an arbitrary function. The effect is very similar to that of a smart-pointer. Indeed, in many cases a smart pointer is just as good. But there are some scenarios in which a smart pointer is a bit awkward to use.

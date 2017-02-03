@@ -24,10 +24,10 @@
 #include "checkcall.hpp"
 #include "test_api.h"
 
-using namespace ::cwrap;
-using namespace ::cwrap::testing::mock;
-using namespace ::cwrap::testing::mock::api;
-using namespace ::cwrap::testing::assertions;
+using namespace ::cppc;
+using namespace ::cppc::testing::mock;
+using namespace ::cppc::testing::mock::api;
+using namespace ::cppc::testing::assertions;
 
 /**
  * Auxiliary templates for testing
@@ -43,9 +43,9 @@ bool WithPreCall::called = false;
 
 TEST(Auxiliary, callPrecCallIfPresentSFINAE) {
     WithPreCall::called = false;
-    ::cwrap::_auxiliary::callPrecCallIfPresent<WithoutPreCall>();
+    ::cppc::_auxiliary::callPrecCallIfPresent<WithoutPreCall>();
     ASSERT_FALSE(WithPreCall::called);
-    ::cwrap::_auxiliary::callPrecCallIfPresent<WithPreCall>();
+    ::cppc::_auxiliary::callPrecCallIfPresent<WithPreCall>();
     ASSERT_TRUE(WithPreCall::called);
 }
 

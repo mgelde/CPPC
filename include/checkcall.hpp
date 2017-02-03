@@ -26,7 +26,7 @@
 
 #include "boost/format.hpp"
 
-namespace cwrap {
+namespace cppc {
 
 namespace _auxiliary {
 
@@ -180,7 +180,7 @@ template <class R = DefaultReturnCheckPolicy,
           class Callable = std::function<void(void)>,
           class... Args>
 inline auto callChecked(Callable&& callable, Args&&... args) {
-    ::cwrap::_auxiliary::callPrecCallIfPresent<R>();
+    ::cppc::_auxiliary::callPrecCallIfPresent<R>();
     const auto retVal = callable(std::forward<Args>(args)...);
     return _auxiliary::ReturnCheckWrapper<R, E, decltype(retVal)>::policyHandeledReturnValue(
             retVal);
@@ -218,9 +218,9 @@ class CallCheckContext {
 public:
     template <class Callable, class... Args>
     static inline auto callChecked(Callable&& callable, Args&&... args) {
-        return ::cwrap::callChecked<ReturnCheckPolicy, ErrorPolicy>(
+        return ::cppc::callChecked<ReturnCheckPolicy, ErrorPolicy>(
                 std::forward<Callable>(callable), std::forward<Args>(args)...);
     }
 };
 
-}  // namespace cwrap
+}  // namespace cppc

@@ -48,7 +48,7 @@ int getPrioUsingPlainOldC(pid_t pid) {
     return 0;
 }
 
-//for CWrap, we first need to define a ReturnCheckPolicy
+//for CPPC, we first need to define a ReturnCheckPolicy
 
 struct GetPrioReturnCheckPolicy {
     static inline bool returnValueIsOk(int prio) {
@@ -62,9 +62,9 @@ struct GetPrioReturnCheckPolicy {
     }
 };
 
-using ct = cwrap::CallCheckContext<GetPrioReturnCheckPolicy, cwrap::ErrnoErrorPolicy>;
+using ct = cppc::CallCheckContext<GetPrioReturnCheckPolicy, cppc::ErrnoErrorPolicy>;
 
-int getPrioUsingCWrap(pid_t pid) {
+int getPrioUsingCPPC(pid_t pid) {
     int prio = ct::callChecked(getpriority, PRIO_PROCESS, pid);
     std::cout << "PID is " << pid << " and NICE is " << prio << "\n";
     return 0;
@@ -72,5 +72,5 @@ int getPrioUsingCWrap(pid_t pid) {
 
 int main() {
     pid_t pid = getpid();
-    return getPrioUsingCWrap(pid);
+    return getPrioUsingCPPC(pid);
 }

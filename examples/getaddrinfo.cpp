@@ -16,7 +16,7 @@
 
 #include <iostream>
 
-#include "cwrap.hpp"
+#include "cppc.hpp"
 
 extern "C" {
 #include <arpa/inet.h>
@@ -71,11 +71,11 @@ struct protoent GetProtoByNumberErrorPolicy::_protoent = {
         .p_name = _name, .p_aliases = nullptr, .p_proto = 0,
 };
 
-using ct = cwrap::CallCheckContext<cwrap::IsZeroReturnCheckPolicy, GetAddrInfoErrorPolicy>;
+using ct = cppc::CallCheckContext<cppc::IsZeroReturnCheckPolicy, GetAddrInfoErrorPolicy>;
 using nullsafe =
-        cwrap::CallCheckContext<cwrap::IsNotNullptrReturnCheckPolicy, GetProtoByNumberErrorPolicy>;
+        cppc::CallCheckContext<cppc::IsNotNullptrReturnCheckPolicy, GetProtoByNumberErrorPolicy>;
 
-int cwrapWay(int argc, char **argv) {
+int cppcWay(int argc, char **argv) {
     if (argc != 2) {
         std::cerr << "Not enough arguments.\n"
                   << "usage: getaddrinfo <host>\n";
@@ -83,7 +83,7 @@ int cwrapWay(int argc, char **argv) {
     }
     const char *node = argv[1];
 
-    cwrap::Guard<struct addrinfo *> addrinfoList{[](auto *ptr) {
+    cppc::Guard<struct addrinfo *> addrinfoList{[](auto *ptr) {
         std::cout << "Freeing list ...\n";
         freeaddrinfo(ptr);
     }};
@@ -110,7 +110,7 @@ int cwrapWay(int argc, char **argv) {
 }
 
 /**
- * For comparison: This is how to handle this call without CWrap (or similar custom code).
+ * For comparison: This is how to handle this call without CPPC (or similar custom code).
  *
  * Note how cumbersome the unique_ptr makes the error handling.
  *
@@ -158,4 +158,4 @@ int plainCpp11(int argc, char **argv) {
     return 0;
 }
 
-int main(int argc, char **argv) { return cwrapWay(argc, argv); }
+int main(int argc, char **argv) { return cppcWay(argc, argv); }

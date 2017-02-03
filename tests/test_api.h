@@ -21,7 +21,7 @@
 
 #include "gtest/gtest.h"
 
-namespace cwrap {
+namespace cppc {
 
 namespace testing {
 
@@ -169,4 +169,4 @@ void ASSERT_NUM_CALLED(T &&t, unsigned int n) {
 
 }  // namespace testing
 
-}  // namespace cwrap
+}  // namespace cppc

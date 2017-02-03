@@ -122,8 +122,8 @@ int rsaKeygenUniquePtr() {
     return 0;
 }
 
-using RSAGuard = cwrap::Guard<RSA *, RSADeleter>;
-using BNGuard = cwrap::Guard<BIGNUM *, BNDeleter>;
+using RSAGuard = cppc::Guard<RSA *, RSADeleter>;
+using BNGuard = cppc::Guard<BIGNUM *, BNDeleter>;
 
 struct OpenSSLErrorPolicy {
     template <class Rv>
@@ -138,10 +138,10 @@ void OpenSSLErrorPolicy::handleError(const Rv &) {
 }
 
 // openssl-functions use a non-zero return code to indicate error
-using ct = cwrap::CallCheckContext<cwrap::IsNotZeroReturnCheckPolicy, OpenSSLErrorPolicy>;
-using ct_ptr = cwrap::CallCheckContext<cwrap::IsNotNullptrReturnCheckPolicy, OpenSSLErrorPolicy>;
+using ct = cppc::CallCheckContext<cppc::IsNotZeroReturnCheckPolicy, OpenSSLErrorPolicy>;
+using ct_ptr = cppc::CallCheckContext<cppc::IsNotNullptrReturnCheckPolicy, OpenSSLErrorPolicy>;
 
-int rsaKeygenCWrapWay() {
+int rsaKeygenCPPCWay() {
     ct::callChecked(RAND_status);
     RSAGuard rsa{ct_ptr::callChecked(RSA_new)};
     BNGuard exponent{ct_ptr::callChecked(BN_new)};
@@ -151,4 +151,4 @@ int rsaKeygenCWrapWay() {
     return 0;
 }
 
-int main() { return rsaKeygenCWrapWay(); }
+int main() { return rsaKeygenCPPCWay(); }

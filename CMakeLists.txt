@@ -13,25 +13,25 @@
 #   limitations under the License.
 
 cmake_minimum_required (VERSION 3.0.2)
-project (CWrap CXX C)
+project (CPPC CXX C)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake/Modules/")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wall")
 
-add_library(CWrap INTERFACE)
+add_library(CPPC INTERFACE)
 
 find_package(Boost REQUIRED)
 
-target_include_directories(CWrap INTERFACE ${Boost_INCLUDE_DIRS})
-target_include_directories(CWrap INTERFACE
+target_include_directories(CPPC INTERFACE ${Boost_INCLUDE_DIRS})
+target_include_directories(CPPC INTERFACE
       $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-      $<INSTALL_INTERFACE:include/cwrap>
+      $<INSTALL_INTERFACE:include/cppc>
 )
 
 enable_testing()
 add_subdirectory(tests)
 add_subdirectory(examples)
 
-install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION /usr/include/cwrap)
+install(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/include/ DESTINATION /usr/include/cppc)
