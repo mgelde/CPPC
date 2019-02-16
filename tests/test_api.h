@@ -21,6 +21,16 @@
 
 #include "gtest/gtest.h"
 
+/*
+ * In order to test C code, we also use C name mangling
+ *
+ */
+extern "C" {
+
+int c_api_some_func_with_error_code(int code, int *ctx);
+
+}
+
 namespace cppc {
 
 namespace testing {
@@ -97,6 +107,7 @@ some_type_t *create_and_initialize();
  *
  */
 void free_resources(some_type_t *ptr);
+
 int some_func_with_error_code(int errorCode);
 
 }  // namespace api
@@ -141,6 +152,7 @@ public:
     static MockAPI &instance();
 
 private:
+
     FreeResourcesOperator _freeFunc;
     ReleaseResourcesOperator _releaseFunc;
     SomeFuncWithErrorCodeOperator _someFuncWithErrorCode;

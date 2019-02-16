@@ -14,8 +14,18 @@
  *
  */
 
-
 #include "test_api.h"
+
+extern "C" {
+
+int c_api_some_func_with_error_code(int x, int *ctx) {
+    if (ctx) {
+        (*ctx)++;
+    }
+    return x;
+}
+
+}
 
 namespace cppc {
 

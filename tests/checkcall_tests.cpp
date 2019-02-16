@@ -86,6 +86,13 @@ TEST_F(CheckCallTest, testWithNonDefaultErrorPolicy) {
                  std::runtime_error);
 }
 
+TEST_F(CheckCallTest, testCFunctionCall) {
+    int called = 0;
+    int x = callChecked<IsNotZeroReturnCheckPolicy>(c_api_some_func_with_error_code, 17, &called);
+    ASSERT_EQ(called, 1);
+    ASSERT_EQ(x, 17);
+}
+
 /**
  * Define a CustomReturnValuePolicy that modifies the return value.
  */
