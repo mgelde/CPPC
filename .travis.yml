@@ -1,13 +1,12 @@
 language: cpp
+dist: xenial
 
 addons:
   apt:
     sources:
-      - george-edison55-precise-backports
       - ubuntu-toolchain-r-test
     packages:
-      - gcc-5
-      - g++-5
+      - g++-7
       - cmake
       - cmake-data
       - libgtest-dev
@@ -15,8 +14,8 @@ addons:
       - libssl-dev
 
 before_script:
-    - export CXX=/usr/bin/g++-5
-    - export CC=/usr/bin/gcc-5
+    - export CXX=/usr/bin/g++-7
+    - export CC=/usr/bin/gcc-7
 
 script:
     - mkdir build
