@@ -36,7 +36,7 @@ template <class FreePolicy>
 struct IsNoexcept {
 private:
     /**
-     * This auxiliary template get the arguments of FreePolicy::operator()
+     * This auxiliary template gets the arguments of FreePolicy::operator()
      * so that we can write a well-formed invocation of operator() to verify
      * that it is noexcept.
      */
@@ -51,12 +51,23 @@ private:
     struct _is_invocation_expression_noexcept<T (F::*)(Args...) const> {
         static constexpr bool value{noexcept(std::declval<FreePolicy>()(std::declval<Args>()...))};
     };
+#if __cplusplus >= 201703L
+    template <class T, class F, class... Args>
+    struct _is_invocation_expression_noexcept<T (F::*)(Args...) noexcept> {
+        static constexpr bool value{noexcept(std::declval<FreePolicy>()(std::declval<Args>()...))};
+    };
+    template <class T, class F, class... Args>
+    struct _is_invocation_expression_noexcept<T (F::*)(Args...) const noexcept> {
+        static constexpr bool value{noexcept(std::declval<FreePolicy>()(std::declval<Args>()...))};
+    };
+#endif
 
 public:
     constexpr static bool value{_is_invocation_expression_noexcept<decltype(
             &std::decay_t<FreePolicy>::operator())>::value};
 };
 
+#if __cplusplus < 201703L
 /**
  * @brief Specialization for function pointers.
  *
@@ -73,6 +84,16 @@ public:
  */
 template <class Rv, class... Args>
 struct IsNoexcept<Rv (*)(Args...)> : public std::false_type {};
+#else
+template <class Rv, class... Args>
+struct IsNoexcept<Rv (*)(Args...)> : public std::false_type {};
+template <class Rv, class... Args>
+struct IsNoexcept<Rv (&)(Args...) noexcept> : public std::true_type {};
+template <class Rv, class... Args>
+struct IsNoexcept<Rv (&)(Args...)> : public std::false_type {};
+template <class Rv, class... Args>
+struct IsNoexcept<Rv (*)(Args...) noexcept> : public std::true_type {};
+#endif
 
 /**
  * Turn T into a reference-type, unless it's a pointer
