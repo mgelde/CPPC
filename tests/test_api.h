@@ -110,6 +110,8 @@ void free_resources(some_type_t *ptr);
 
 int some_func_with_error_code(int errorCode);
 
+int some_func_with_error_code_noexcept(int errorCode) noexcept;
+
 }  // namespace api
 
 struct MockCallOperator {

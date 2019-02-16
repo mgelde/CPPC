@@ -177,7 +177,7 @@ using DefaultReturnCheckPolicy = IsZeroReturnCheckPolicy;
 
 template <class R = DefaultReturnCheckPolicy,
           class E = DefaultErrorPolicy,
-          class Callable = std::function<void(void)>,
+          class Callable,
           class... Args>
 inline auto callChecked(Callable&& callable, Args&&... args) {
     ::cppc::_auxiliary::callPrecCallIfPresent<R>();
@@ -218,6 +218,7 @@ class CallCheckContext {
 public:
     template <class Callable, class... Args>
     static inline auto callChecked(Callable&& callable, Args&&... args) {
+
         return ::cppc::callChecked<ReturnCheckPolicy, ErrorPolicy>(
                 std::forward<Callable>(callable), std::forward<Args>(args)...);
     }

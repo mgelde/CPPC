@@ -66,6 +66,26 @@ TEST_F(CheckCallTest, testStandardUsage) {
     ASSERT_EQ(x, 0);
 }
 
+TEST_F(CheckCallTest, testStandardUsageNoexcept) {
+    const auto &x = callChecked(some_func_with_error_code_noexcept, 0);
+    ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    ASSERT_EQ(x, 0);
+}
+
+TEST_F(CheckCallTest, testStandardUsageNoexceptCallCheckContext) {
+    using ct = CallCheckContext<>;
+    const auto &x = ct::callChecked(some_func_with_error_code_noexcept, 0);
+    ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    ASSERT_EQ(x, 0);
+}
+
+TEST_F(CheckCallTest, testStandardUsageCallCheckContext) {
+    using ct = CallCheckContext<>;
+    const auto &x = ct::callChecked(some_func_with_error_code, 0);
+    ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());
+    ASSERT_EQ(x, 0);
+}
+
 TEST_F(CheckCallTest, testWithNonDefaultReturnCheckPolicy) {
     const auto &x = callChecked<IsNotZeroReturnCheckPolicy>(some_func_with_error_code, 1);
     ASSERT_CALLED(MockAPI::instance().someFuncWithErrorCode());

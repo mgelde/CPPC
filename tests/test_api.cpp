@@ -24,7 +24,6 @@ int c_api_some_func_with_error_code(int x, int *ctx) {
     }
     return x;
 }
-
 }
 
 namespace cppc {
@@ -56,6 +55,10 @@ some_type_t *create_and_initialize() {
 }
 
 int some_func_with_error_code(int errorCode) {
+    return MockAPI::instance().doSomeFuncWithErrorCode(errorCode);
+}
+
+int some_func_with_error_code_noexcept(int errorCode) noexcept {
     return MockAPI::instance().doSomeFuncWithErrorCode(errorCode);
 }
 
