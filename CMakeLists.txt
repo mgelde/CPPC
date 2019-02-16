@@ -1,4 +1,4 @@
-#   Copyright 2016,2017 Marcus Gelderie
+#   Copyright 2016-2019 Marcus Gelderie
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
 #   you may not use this file except in compliance with the License.
@@ -12,8 +12,8 @@
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
 
-cmake_minimum_required (VERSION 3.0.2)
-project (CPPC CXX C)
+cmake_minimum_required(VERSION 3.2)
+project(CPPC CXX C)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
