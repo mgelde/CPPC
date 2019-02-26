@@ -17,9 +17,16 @@ before_script:
     - export CXX=/usr/bin/g++-7
     - export CC=/usr/bin/gcc-7
 
+matrix:
+  include:
+    - name: "C++14"
+      env: CSTD_VERSION=14
+    - name: "C++17"
+      env: CSTD_VERSION=17
+
 script:
     - mkdir build
     - cd build
-    - cmake ..
+    - cmake -DCI_CXX_VERSION="${CSTD_VERSION}" ..
     - make
     - make test
