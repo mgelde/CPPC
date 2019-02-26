@@ -24,7 +24,7 @@ if (NOT CI_CXX_STANDARD)
     set(CI_CXX_STANDARD 17)
 endif(NOT CI_CXX_STANDARD)
 
-message(STATUS "Comiling with CXX standard set to ${CI_CXX_STANDARD}")
+message(STATUS "Compiling with CXX standard set to ${CI_CXX_STANDARD}")
 set(CMAKE_CXX_STANDARD ${CI_CXX_STANDARD})
 
 add_library(CPPC INTERFACE)
