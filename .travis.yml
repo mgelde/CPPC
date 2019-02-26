@@ -27,6 +27,6 @@ matrix:
 script:
     - mkdir build
     - cd build
-    - cmake -DCI_CXX_VERSION="${CSTD_VERSION}" ..
+    - cmake -DCI_CXX_STANDARD="${CSTD_VERSION}" ..
     - make
     - make test
