@@ -30,7 +30,7 @@ namespace _auxiliary {
  *
  * A functor may define an operator() to be either noexcept(true)
  * or noexcept(false). This helper template exposes whether the
- * operator is noeexcept or not.
+ * operator is noexcept or not.
  */
 template <class FreePolicy>
 struct IsNoexcept {
@@ -67,7 +67,6 @@ public:
             &std::decay_t<FreePolicy>::operator())>::value};
 };
 
-#if __cplusplus < 201703L
 /**
  * @brief Specialization for function pointers.
  *
@@ -81,16 +80,17 @@ public:
  *
  * In the case of function pointers, where we cannot, at compile time,
  * know the pointee, we must assume noexcept(false).
+ *
+ * In C++17 the noexcept specification is part of the type and we can
+ * specialize a template based on this information.
  */
 template <class Rv, class... Args>
 struct IsNoexcept<Rv (*)(Args...)> : public std::false_type {};
-#else
-template <class Rv, class... Args>
-struct IsNoexcept<Rv (*)(Args...)> : public std::false_type {};
-template <class Rv, class... Args>
-struct IsNoexcept<Rv (&)(Args...) noexcept> : public std::true_type {};
 template <class Rv, class... Args>
 struct IsNoexcept<Rv (&)(Args...)> : public std::false_type {};
+#if __cplusplus >= 201703L
+template <class Rv, class... Args>
+struct IsNoexcept<Rv (&)(Args...) noexcept> : public std::true_type {};
 template <class Rv, class... Args>
 struct IsNoexcept<Rv (*)(Args...) noexcept> : public std::true_type {};
 #endif

@@ -247,8 +247,8 @@ static_assert(
                 std::remove_reference_t<decltype(std::declval<const Guard<int>>().get())>>::value,
         "Policy respects const correctness.");
 
-auto __deleterLambdaPrototype = [](some_type_t &) {
-};  // lambdas cannot be declared in unevaluated contexts
+// lambdas cannot be declared in unevaluated contexts
+auto __deleterLambdaPrototype = [](some_type_t &) {};
 
 static_assert(std::is_constructible<GuardT<std::function<void(some_type_t &)>>,
                                     decltype(__deleterLambdaPrototype)>::value,
@@ -265,6 +265,22 @@ static_assert(noexcept(std::declval<GuardT<CustomDeleterT>>().~Guard()),
 
 static_assert(!noexcept(std::declval<GuardT<>>().~Guard()),
               "Guard with DefaultFreePolicy should not have noexcept destructor.");
+
+#if __cplusplus < 201703L
+static_assert(
+        !noexcept(std::declval<Guard<int, void(&)(int) noexcept>>().~Guard()),
+       "Guard with noexcept free method should not have noexcept destructor on < C++17");
+static_assert(
+        !noexcept(std::declval<Guard<int, void(*)(int) noexcept>>().~Guard()),
+       "Guard with noexcept free method should not have noexcept destructor on < C++17");
+#else
+static_assert(
+        noexcept(std::declval<Guard<int, void(&)(int) noexcept>>().~Guard()),
+       "Guard with noexcept free method should have noexcept destructor");
+static_assert(
+        noexcept(std::declval<Guard<int, void(*)(int) noexcept>>().~Guard()),
+       "Guard with noexcept free method should have noexcept destructor");
+#endif
 
 static_assert(!noexcept(std::declval<GuardT<void (*)(some_type_t *)>>().~Guard()),
               "Guard with function-pointer free policy should not have noexcept destructor");
